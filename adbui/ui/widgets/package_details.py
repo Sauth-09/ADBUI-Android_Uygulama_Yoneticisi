@@ -114,10 +114,10 @@ class PackageDetailsWidget(QWidget):
         
         self.appops_combo = QComboBox()
         self.appops_combo.addItem("Seçin...", None)
-        self.appops_combo.addItem("Arka plan izni ver", "RUN_IN_BACKGROUND:allow")
-        self.appops_combo.addItem("Arka plan izni kaldır", "RUN_IN_BACKGROUND:deny")
-        self.appops_combo.addItem("Wake Lock izni ver", "WAKE_LOCK:allow")
-        self.appops_combo.addItem("Wake Lock izni kaldır", "WAKE_LOCK:deny")
+        self.appops_combo.addItem("Arka Planda Çalışma (Background) - İzin Ver", "RUN_IN_BACKGROUND:allow")
+        self.appops_combo.addItem("Arka Planda Çalışma (Background) - Engelle", "RUN_IN_BACKGROUND:deny")
+        self.appops_combo.addItem("Uyanık Tut (Wake Lock) - İzin Ver", "WAKE_LOCK:allow")
+        self.appops_combo.addItem("Uyanık Tut (Wake Lock) - Engelle", "WAKE_LOCK:deny")
         self.appops_combo.currentIndexChanged.connect(self._on_appops_changed)
         appops_layout.addWidget(self.appops_combo)
         
