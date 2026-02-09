@@ -126,7 +126,10 @@ def setup_logging(
         ui_handler.setLevel(logging.INFO)
         logger.addHandler(ui_handler)
     
-    logger.info("Log sistemi başlatıldı")
+    start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    logger.info("="*40)
+    logger.info(f"OTURUM BAŞLATILDI: {start_time}")
+    logger.info("="*40)
     return logger
 
 
