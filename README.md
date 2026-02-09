@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ADBUI - Android Debloat ve Kontrol Aracı
 
 ## Gereksinimler
@@ -50,3 +51,7 @@ platform-tools/
 ## Lisans
 
 MIT License
+=======
+# ADBUI-Ak-ll-Uygulama-Y-neticisi
+android adb ile normalde kaldırılamayan uygulamaları kaldır, arka planı kısıtla,dondur, hengi sistem uygulamasının ne işe yaradığını öğren.
+>>>>>>> a4aa34683d58fc8b669dfdb4a76231492555bcdb
