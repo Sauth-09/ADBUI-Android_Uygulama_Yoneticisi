@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QPushButton, QGroupBox, QComboBox, QFrame,
     QGridLayout
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
 import logging
 
 from ...core.package_manager import Package, PackageCategory
