@@ -12,7 +12,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 import logging
 
+from pathlib import Path
 from ...utils.config import get_config
+from ...ai.cache import AICache
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,48 @@ class SettingsDialog(QDialog):
         cache_form.addRow("Geçerlilik süresi:", self.cache_ttl)
         
         ai_layout.addWidget(cache_group)
+        
+        # Bakım ve Temizlik
+        maint_group = QGroupBox("Bakım ve Temizlik")
+        maint_layout = QHBoxLayout(maint_group)
+        
+        self.clear_logs_btn = QPushButton("Logları Temizle")
+        self.clear_logs_btn.setToolTip("Uygulama log dosyalarını temizler.")
+        self.clear_logs_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #ffc107;
+                color: black;
+                border: none;
+                padding: 5px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0a800;
+            }
+        """)
+        self.clear_logs_btn.clicked.connect(self._clear_logs)
+        
+        self.clear_db_btn = QPushButton("Veritabanını Sıfırla")
+        self.clear_db_btn.setToolTip("Tüm AI analiz geçmişini siler. Dikkat!")
+        self.clear_db_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                padding: 5px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
+        self.clear_db_btn.clicked.connect(self._clear_db)
+        
+        maint_layout.addWidget(self.clear_logs_btn)
+        maint_layout.addWidget(self.clear_db_btn)
+        
+        ai_layout.addWidget(maint_group)
+        
         ai_layout.addStretch()
         
         tabs.addTab(ai_tab, "🤖 AI")
@@ -194,3 +238,50 @@ class SettingsDialog(QDialog):
             self.accept()
         else:
             QMessageBox.critical(self, "Hata", "Ayarlar kaydedilemedi!")
+            
+    def _clear_db(self):
+        """Veritabanını temizle."""
+        reply = QMessageBox.question(
+            self, "Onay", 
+            "Tüm AI analiz veritabanı silinecek.\nBu işlem geri alınamaz.\nDevam etmek istiyor musunuz?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                # Cache temizle
+                cache = AICache()
+                cache.clear()
+                QMessageBox.information(self, "Başarılı", "Veritabanı temizlendi.")
+            except Exception as e:
+                logger.error(f"Veritabanı silinemedi: {e}")
+                QMessageBox.critical(self, "Hata", f"Veritabanı temizlenemedi:\n{e}")
+    
+    
+    def _clear_logs(self):
+        """Log temizliği."""
+        reply = QMessageBox.question(
+            self, "Onay", 
+            "Tüm log dosyaları silinecek.\nDevam etmek istiyor musunuz?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                log_dir = Path.home() / ".adbui" / "logs"
+                count = 0
+                if log_dir.exists():
+                    for log_file in log_dir.glob("*.log"):
+                        try:
+                            # Açık dosya (main.log) silinemeyebilir
+                            log_file.unlink()
+                            count += 1
+                        except Exception:
+                            pass # Açık dosyalar silinemeyebilir
+                    
+                    QMessageBox.information(self, "Başarılı", f"{count} log dosyası silindi.")
+                else:
+                    QMessageBox.information(self, "Bilgi", "Log klasörü bulunamadı.")
+            except Exception as e:
+                logger.error(f"Log temizleme hatası: {e}")
+                QMessageBox.critical(self, "Hata", f"Loglar temizlenemedi:\n{e}")
