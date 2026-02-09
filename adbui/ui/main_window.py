@@ -607,10 +607,20 @@ class MainWindow(QMainWindow):
                 return
         
         # Cache'de yok, AI analizi başlat (arka plan işlemi devam ediyorsa bekleyecek)
+        # Cache'de yok, AI analizi başlat (arka plan işlemi devam ediyorsa bekleyecek)
         if self.ai_analyzer.is_available:
             self.ai_panel.set_loading(True)
-            analysis = self.ai_analyzer.analyze(package.name)
-            self.ai_panel.set_analysis(analysis)
+            
+            # Asenkron çağrı (Thread ile) - UI donmasını önler
+            def run():
+                try:
+                    analysis = self.ai_analyzer.analyze(package.name)
+                    self.refresh_finished.emit(analysis)
+                except Exception as e:
+                    logger.error(f"Manuel analiz hatası: {e}")
+                    self.refresh_finished.emit(None)
+            
+            threading.Thread(target=run, daemon=True).start()
         else:
             self.ai_panel.set_unavailable()
     
