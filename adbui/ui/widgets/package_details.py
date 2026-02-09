@@ -89,6 +89,16 @@ class PackageDetailsWidget(QWidget):
         self.standby_label = QLabel("-")
         info_layout.addWidget(self.standby_label, 6, 1)
         
+        # Versiyon
+        info_layout.addWidget(QLabel("Versiyon:"), 7, 0)
+        self.version_label = QLabel("-")
+        info_layout.addWidget(self.version_label, 7, 1)
+        
+        # Yükleme Zamanı
+        info_layout.addWidget(QLabel("Yükleme Tarihi:"), 8, 0)
+        self.install_time_label = QLabel("-")
+        info_layout.addWidget(self.install_time_label, 8, 1)
+        
         layout.addWidget(self.info_group)
         
         # İşlem butonları
@@ -251,6 +261,8 @@ class PackageDetailsWidget(QWidget):
         self.bg_label.setText("-")
         self.wakelock_label.setText("-")
         self.standby_label.setText("-")
+        self.version_label.setText("-")
+        self.install_time_label.setText("-")
         self.warning_label.hide()
         self._set_actions_enabled(False)
     
@@ -304,10 +316,14 @@ class PackageDetailsWidget(QWidget):
                 self.bg_label.setText("❓ Bilgi Yok")
                 self.wakelock_label.setText("❓ Bilgi Yok")
                 self.standby_label.setText("❓ Bilgi Yok")
+                self.version_label.setText("❓ Bilgi Yok")
+                self.install_time_label.setText("❓ Bilgi Yok")
                 return
                 
             self.bg_label.setText(str(details.get("run_in_background", "❓ Bilinmiyor")))
             self.wakelock_label.setText(str(details.get("wake_lock", "❓ Bilinmiyor")))
             self.standby_label.setText(str(details.get("standby_bucket", "❓ Bilinmiyor")))
+            self.version_label.setText(str(details.get("version", "❓ Bilinmiyor")))
+            self.install_time_label.setText(str(details.get("install_time", "❓ Bilinmiyor")))
         except Exception as e:
             logger.error(f"UI Güncelleme Hatası (Advanced Info): {e}")

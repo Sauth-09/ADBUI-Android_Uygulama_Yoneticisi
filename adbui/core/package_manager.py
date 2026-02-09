@@ -349,12 +349,14 @@ class PackageManager:
     
     def get_advanced_details(self, package_name: str) -> Dict[str, str]:
         """
-        Paket hakkında gelişmiş detayları al (AppOps, Standby, WakeLock).
+        Paket hakkında gelişmiş detayları al (AppOps, Standby, WakeLock, Versiyon, Tarih).
         """
         details = {
             "run_in_background": "Yükleniyor...",
             "wake_lock": "Yükleniyor...",
-            "standby_bucket": "Yükleniyor..."
+            "standby_bucket": "Yükleniyor...",
+            "version": "Yükleniyor...",
+            "install_time": "Yükleniyor..."
         }
         
         try:
@@ -389,6 +391,16 @@ class PackageManager:
                     "50": "Muaf (Exempt)"
                 }
                 details["standby_bucket"] = bucket_map.get(bucket_code, bucket_code)
+            
+            # 4. Versiyon ve Yükleme Zamanı (Dumpsys)
+            res = self.adb.shell(f"dumpsys package {package_name}", device_serial=self.device_serial)
+            if res.success:
+                import re
+                v_match = re.search(r"versionName=([^\r\n]+)", res.stdout)
+                if v_match: details["version"] = v_match.group(1)
+                
+                t_match = re.search(r"firstInstallTime=([^\r\n]+)", res.stdout)
+                if t_match: details["install_time"] = t_match.group(1)
                 
         except Exception as e:
             logger.error(f"Gelişmiş detay hatası: {e}")
