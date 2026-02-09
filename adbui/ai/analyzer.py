@@ -278,27 +278,50 @@ Analiz edilecek paketler:
     def _parse_batch_response(self, content: str) -> Dict[str, AIAnalysis]:
         """Batch API yanıtını parse et."""
         results = {}
+        raw_content = content
+        
         try:
             # JSON temizle
             content = content.strip()
+            
+            # Markdown block temizliği
             if '```' in content:
                 lines = content.split('\n')
                 json_lines = []
                 in_block = False
+                found_block = False
+                
                 for line in lines:
-                    if line.strip().startswith('```'):
+                    stripped = line.strip()
+                    if stripped.startswith('```'):
                         in_block = not in_block
                         continue
                     if in_block:
                         json_lines.append(line)
-                content = '\n'.join(json_lines)
+                        found_block = True
+                
+                if found_block:
+                    content = '\n'.join(json_lines)
             
+            # JSON Array bul ([...])
             start = content.find('[')
             end = content.rfind(']') + 1
-            if start != -1 and end > start:
-                content = content[start:end]
             
-            data_list = json.loads(content)
+            if start == -1 or end <= start:
+                logger.warning(f"Batch yanıtta JSON listesi ([...]) bulunamadı. Raw: {raw_content[:200]}")
+                return {}
+            
+            content = content[start:end]
+            
+            try:
+                data_list = json.loads(content)
+            except json.JSONDecodeError as je:
+                logger.error(f"JSON Decode hatası: {je}")
+                return {}
+            
+            if not isinstance(data_list, list):
+                logger.warning(f"API yanıtı liste değil: {type(data_list)}")
+                return {}
             
             for item in data_list:
                 pkg_name = item.get('package')
@@ -318,7 +341,8 @@ Analiz edilecek paketler:
             return results
             
         except Exception as e:
-            logger.error(f"Batch JSON parse hatası: {e}\nİçerik: {content[:200]}")
+            logger.error(f"Batch JSON genel hata: {e}")
+            logger.debug(f"Hatalı İçerik: {raw_content}")
             return {}
 
     def analyze_batch(

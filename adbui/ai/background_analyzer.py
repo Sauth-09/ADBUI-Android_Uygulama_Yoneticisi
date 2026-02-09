@@ -80,7 +80,7 @@ class BackgroundAnalyzerThread(QThread):
                             analyzed += 1
                             self.package_analyzed.emit(pkg.name, analysis)
                 else:
-                    logger.warning(f"Batch {i} analizi boş sonuç döndü (JSON hatası olabilir)")
+                    logger.warning(f"Batch analizi ({i}) boş sonuç döndü. Parse hatası detayları için loglara bakın.")
 
                 # Progress güncelle
                 self.progress_updated.emit(analyzed + skipped, total)

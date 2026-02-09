@@ -795,13 +795,15 @@ class MainWindow(QMainWindow):
         self._background_analyzer.error_occurred.connect(self._on_background_error)
         
         # Başlat
+        self.ai_panel.update_progress(f"AI Analizi Başlıyor... (0/{len(packages)})")
         self._background_analyzer.start()
         logger.info("Arka plan AI analizi başlatıldı")
     
     @Slot(int, int)
     def _on_background_progress(self, current: int, total: int):
         """Arka plan analizi ilerleme durumu."""
-        self.status_label.setText(f"AI Analizi: {current}/{total}")
+        self.ai_panel.update_progress(f"AI Analizi: {current}/{total}")
+        # self.status_label.setText(f"AI Analizi: {current}/{total}") # Artık gerek yok
     
     @Slot(str, object)
     def _on_background_package_analyzed(self, package_name: str, analysis):
@@ -814,6 +816,11 @@ class MainWindow(QMainWindow):
     def _on_background_completed(self, total_analyzed: int):
         """Arka plan analizi tamamlandı."""
         self.status_label.setText("Hazır")
+        self.ai_panel.update_progress("AI: Tamamlandı ✅")
+        
+        # 5 saniye sonra AI label'ı temizle (istenirse)
+        # QTimer.singleShot(5000, lambda: self.ai_panel.update_progress(""))
+        
         logger.info(f"Arka plan AI analizi tamamlandı: {total_analyzed} paket analiz edildi")
     
     @Slot(str)
@@ -823,8 +830,10 @@ class MainWindow(QMainWindow):
         
         if "Kota" in error or "RESOURCE_EXHAUSTED" in str(error):
             self.status_label.setText("🛑 AI Analizi Durduruldu (Kota)")
+            self.ai_panel.update_progress("⚠️ AI Kotası Doldu", is_error=True)
         else:
-            self.status_label.setText(f"AI Hatası: {str(error)[:30]}")
+            self.status_label.setText(f"AI Hatası")
+            self.ai_panel.update_progress(f"AI Hatası: {str(error)[:20]}...", is_error=True)
     
     @Slot(str)
     def _force_ai_refresh(self, package_name: str):

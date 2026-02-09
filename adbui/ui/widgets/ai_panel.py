@@ -61,6 +61,14 @@ class AIPanelWidget(QWidget):
         header.addWidget(self.cache_badge)
         
         header.addStretch()
+
+        # İlerleme Label (Yeni)
+        self.progress_label = QLabel("")
+        self.progress_label.setStyleSheet("color: #00bcd4; font-weight: bold; font-size: 12px;")
+        self.progress_label.hide()
+        header.addWidget(self.progress_label)
+        
+        header.addStretch()
         
         # Güncelle butonu
         self.refresh_btn = QPushButton("🔄")
@@ -449,3 +457,13 @@ class AIPanelWidget(QWidget):
         """Yenile butonuna tıklandı."""
         if self.current_package:
             self.refresh_requested.emit(self.current_package)
+
+    def update_progress(self, text: str, is_error: bool = False):
+        """İlerleme durumunu güncelle (text, error)."""
+        self.progress_label.setText(text)
+        self.progress_label.show()
+        
+        if is_error:
+            self.progress_label.setStyleSheet("color: #dc3545; font-weight: bold; font-size: 12px;")
+        else:
+            self.progress_label.setStyleSheet("color: #00bcd4; font-weight: bold; font-size: 12px;")
