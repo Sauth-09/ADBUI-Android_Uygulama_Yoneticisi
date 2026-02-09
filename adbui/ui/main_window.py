@@ -422,8 +422,9 @@ class MainWindow(QMainWindow):
         }
         
         QCheckBox::indicator:checked {
-            background-color: #667eea;
-            border-color: #667eea;
+            background-color: transparent;
+            border: 2px solid #667eea;
+            image: url(adbui/assets/check.svg);
         }
         """
         
