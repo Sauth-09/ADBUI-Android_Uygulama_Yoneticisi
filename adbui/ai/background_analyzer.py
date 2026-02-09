@@ -32,7 +32,7 @@ class BackgroundAnalyzerThread(QThread):
     error_occurred = Signal(str)  # error message
     
     def __init__(self, packages: List[Package], analyzer: PackageAnalyzer, 
-                 cache: AICache, batch_size: int = 10, parent=None):
+                 cache: AICache, batch_size: int = 20, parent=None):
         super().__init__(parent)
         
         self.packages = packages

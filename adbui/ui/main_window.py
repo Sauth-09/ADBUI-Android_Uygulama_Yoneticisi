@@ -731,7 +731,7 @@ class MainWindow(QMainWindow):
             packages=packages,
             analyzer=self.ai_analyzer,
             cache=self.ai_cache,
-            batch_size=10
+            batch_size=20
         )
         
         # Sinyalleri bağla
