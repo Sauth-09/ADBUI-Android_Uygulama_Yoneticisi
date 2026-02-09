@@ -180,7 +180,7 @@ class PackageListWidget(QWidget):
         
         # Ara
         search_action = QAction("🔍 Google'da Ara", self)
-        search_action.triggered.connect(lambda: webbrowser.open(f"https://www.google.com/search?q={package.name} android package"))
+        search_action.triggered.connect(lambda: webbrowser.open(f"https://www.google.com/search?q={package.name} nedir ne işe yarar"))
         menu.addAction(search_action)
         
         menu.exec(QCursor.pos())

@@ -25,7 +25,7 @@ from .dialogs.permissions_dialog import PermissionsDialog
 
 from ..core.adb_service import ADBService
 from ..core.device_manager import DeviceManager, Device
-from ..core.package_manager import PackageManager, Package
+from ..core.package_manager import PackageManager, Package, PackageCategory
 from ..ai.analyzer import PackageAnalyzer
 from ..ai.cache import AICache
 from ..ai.background_analyzer import BackgroundAnalyzerThread
@@ -674,7 +674,7 @@ class MainWindow(QMainWindow):
     
     def _confirm_and_uninstall(self, package: Package):
         """Onay al ve kaldır."""
-        if package.is_critical:
+        if package.is_critical and package.category == PackageCategory.SYSTEM:
             QMessageBox.warning(
                 self,
                 "Kritik Paket",
@@ -683,12 +683,29 @@ class MainWindow(QMainWindow):
                 f"İşlem iptal edildi."
             )
             return
+
+        # Mesaj içeriği (Sistem ve Kullanıcı ayrımı)
+        title = "Kaldırma Onayı"
+        if package.category == PackageCategory.SYSTEM:
+            msg = (
+                f"'{package.name}' sistem paketini kaldırmak istediğinize emin misiniz?\n\n"
+                f"Bu işlem paketi 'User 0' (ana kullanıcı) için kaldıracaktır.\n"
+                f"Sistem dosyası silinmez (root olmadan silinemez).\n\n"
+                f"Geri yüklemek için:\n"
+                f"pm install-existing {package.name}"
+            )
+        else:
+             # Kullanıcı uygulaması
+            msg = (
+                f"'{package.name}' uygulamasını KALDIRMAK istediğinize emin misiniz?\n\n"
+                f"Bu işlem uygulamayı ve tüm verilerini cihazdan TAMAMEN SİLECEKTİR.\n"
+                f"(Geri yüklemek için Play Store veya APK ile tekrar kurmanız gerekir.)"
+            )
         
         reply = QMessageBox.question(
             self,
-            "Onay",
-            f"'{package.name}' paketini kaldırmak istediğinize emin misiniz?\n\n"
-            f"Bu işlem kullanıcı 0 için paketi kaldıracaktır.",
+            title,
+            msg,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -709,7 +726,6 @@ class MainWindow(QMainWindow):
         """Paketi dondur."""
         success = self.package_manager.disable(package.name)
         if success:
-            logger.info(f"Paket donduruldu: {package.name}")
             self._refresh_packages()
         else:
             QMessageBox.critical(self, "Hata", "Paket dondurulamadı")
@@ -718,25 +734,20 @@ class MainWindow(QMainWindow):
         """Paketi etkinleştir."""
         success = self.package_manager.enable(package.name)
         if success:
-            logger.info(f"Paket etkinleştirildi: {package.name}")
             self._refresh_packages()
         else:
             QMessageBox.critical(self, "Hata", "Paket etkinleştirilemedi")
     
     def _set_appops(self, package: Package, operation: str, mode: str):
         """AppOps ayarla."""
-        success = self.package_manager.set_appops(package.name, operation, mode)
-        if success:
-            logger.info(f"AppOps ayarlandı: {package.name} {operation}={mode}")
+        self.package_manager.set_appops(package.name, operation, mode)
     
     def _set_standby_bucket(self, package: Package, bucket: str):
         """Standby bucket ayarla."""
         from ..core.package_manager import StandbyBucket
         try:
             bucket_enum = StandbyBucket(bucket)
-            success = self.package_manager.set_standby_bucket(package.name, bucket_enum)
-            if success:
-                logger.info(f"Standby bucket ayarlandı: {package.name} -> {bucket}")
+            self.package_manager.set_standby_bucket(package.name, bucket_enum)
         except ValueError:
             logger.error(f"Geçersiz bucket: {bucket}")
     

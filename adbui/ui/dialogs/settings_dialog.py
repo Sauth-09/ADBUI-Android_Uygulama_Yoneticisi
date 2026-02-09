@@ -280,24 +280,35 @@ class SettingsDialog(QDialog):
         """Log temizliği."""
         reply = QMessageBox.question(
             self, "Onay", 
-            "Tüm log dosyaları silinecek.\nDevam etmek istiyor musunuz?",
+            "Geçmiş log dosyaları silinecek.\n"
+            "(Aktif oturumun log dosyası silinemez)\n\n"
+            "Devam etmek istiyor musunuz?",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         
         if reply == QMessageBox.Yes:
             try:
                 log_dir = Path.home() / ".adbui" / "logs"
-                count = 0
+                deleted_count = 0
+                skipped_count = 0
+                
                 if log_dir.exists():
                     for log_file in log_dir.glob("*.log"):
                         try:
-                            # Açık dosya (main.log) silinemeyebilir
                             log_file.unlink()
-                            count += 1
-                        except Exception:
-                            pass # Açık dosyalar silinemeyebilir
+                            deleted_count += 1
+                        except PermissionError:
+                             # Windows'ta açık dosyalar silinemez
+                            skipped_count += 1
+                        except Exception as e:
+                            logger.error(f"Dosya silme hatası ({log_file}): {e}")
+                            skipped_count += 1
                     
-                    QMessageBox.information(self, "Başarılı", f"{count} log dosyası silindi.")
+                    msg = f"{deleted_count} eski log dosyası silindi."
+                    if skipped_count > 0:
+                        msg += f"\n({skipped_count} aktif dosya korundu)"
+                        
+                    QMessageBox.information(self, "İşlem Tamamlandı", msg)
                 else:
                     QMessageBox.information(self, "Bilgi", "Log klasörü bulunamadı.")
             except Exception as e:
