@@ -294,3 +294,7 @@ class AIPanelWidget(QWidget):
         self.loading_widget.hide()
         self.cache_badge.hide()
         self.unavailable_widget.show()
+    
+    def clear(self):
+        """Paneli temizle (public)."""
+        self._show_placeholder()

@@ -218,6 +218,11 @@ class PackageDetailsWidget(QWidget):
         self.warning_label.hide()
         self._set_actions_enabled(False)
     
+    def clear(self):
+        """Paket bilgilerini temizle (public)."""
+        self._current_package = None
+        self._clear()
+    
     def _set_actions_enabled(self, enabled: bool):
         """İşlem butonlarını etkinleştir/devre dışı bırak."""
         self.uninstall_btn.setEnabled(enabled)

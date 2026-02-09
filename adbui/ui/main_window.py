@@ -180,10 +180,17 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
         
         # Yenile butonu
-        refresh_action = QAction("🔄 Yenile", self)
-        refresh_action.setToolTip("Cihaz ve paket listesini yenile")
-        refresh_action.triggered.connect(self._refresh_all)
+        refresh_action = QAction("🔄 Cihazları Yenile", self)
+        refresh_action.setToolTip("Cihaz listesini yenile")
+        refresh_action.triggered.connect(self._refresh_devices)
         toolbar.addAction(refresh_action)
+        
+        # Paketleri Yükle butonu
+        self.load_packages_btn = QPushButton("📦 Uygulamaları Göster")
+        self.load_packages_btn.setToolTip("Seçili cihazdaki uygulamaları listele")
+        self.load_packages_btn.clicked.connect(self._refresh_packages)
+        self.load_packages_btn.setEnabled(False)  # Cihaz seçilene kadar devre dışı
+        toolbar.addWidget(self.load_packages_btn)
         
         toolbar.addSeparator()
         
@@ -415,17 +422,26 @@ class MainWindow(QMainWindow):
     
     def _refresh_devices(self):
         """Cihaz listesini yenile."""
+        # Önce mevcut seçimi kaydet
+        old_serial = self._current_device.serial if self._current_device else None
+        
         self.device_combo.clear()
         devices = self.device_manager.get_devices()
         
         if not devices:
             self.device_combo.addItem("Cihaz bulunamadı", None)
             self.status_label.setText("Cihaz bağlı değil")
+            self.load_packages_btn.setEnabled(False)
+            self._clear_packages()  # Paketleri temizle
             return
         
-        for device in devices:
+        # Cihazları combo'ya ekle
+        selected_index = 0
+        for i, device in enumerate(devices):
             if device.is_ready:
                 self.device_combo.addItem(device.display_name, device)
+                if device.serial == old_serial:
+                    selected_index = i
             else:
                 status_text = ""
                 if device.status.value == "unauthorized":
@@ -436,6 +452,18 @@ class MainWindow(QMainWindow):
                     f"{device.display_name}{status_text}",
                     device
                 )
+        
+        # Eğer önceki cihaz hala varsa onu seç, yoksa ilkini seç
+        self.device_combo.setCurrentIndex(selected_index)
+    
+    def _clear_packages(self):
+        """Paket listesini temizle."""
+        self._packages = []
+        self.package_list.set_packages([])
+        self.package_details.clear()
+        self.ai_panel.clear()
+        self.package_count_label.setText("")
+        self._selected_package = None
     
     def _refresh_packages(self):
         """Paket listesini yenile."""
@@ -508,10 +536,16 @@ class MainWindow(QMainWindow):
             self._current_device = device
             self.device_manager.current_device = device
             self.status_label.setText(f"Bağlı: {device.display_name}")
+            self.load_packages_btn.setEnabled(True)
             logger.info(f"Cihaz seçildi: {device.display_name}")
-            self._refresh_packages()
+            
+            # Cihaz değiştiyse paketleri temizle (karışıklığı önle)
+            self._clear_packages()
         else:
             self._current_device = None
+            self.load_packages_btn.setEnabled(False)
+            self._clear_packages()  # Paketleri temizle
+            
             if device and not device.is_ready:
                 QMessageBox.warning(
                     self,
