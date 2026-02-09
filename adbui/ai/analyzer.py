@@ -2,6 +2,7 @@
 AI Analyzer Module
 ==================
 Google Gemini API entegrasyonu ile paket analizi.
+Yeni google-genai paketi kullanılıyor.
 """
 
 import json
@@ -11,13 +12,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Google Generative AI paketi
+# Google GenAI paketi (yeni SDK)
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
-    logger.warning("google-generativeai paketi yüklü değil. AI özellikleri devre dışı.")
+    logger.warning("google-genai paketi yüklü değil. AI özellikleri devre dışı.")
 
 
 @dataclass
@@ -75,7 +77,7 @@ Kurallar:
         self.api_key = api_key
         self.model_name = model
         self.cache = cache_manager
-        self._model = None
+        self._client = None
         
         if api_key and GEMINI_AVAILABLE:
             self._configure_gemini(api_key)
@@ -83,25 +85,16 @@ Kurallar:
     def _configure_gemini(self, api_key: str):
         """Gemini API'yi yapılandır."""
         try:
-            genai.configure(api_key=api_key)
-            self._model = genai.GenerativeModel(
-                model_name=self.model_name,
-                generation_config={
-                    "temperature": 0.3,
-                    "top_p": 0.95,
-                    "max_output_tokens": 500,
-                },
-                system_instruction=self.SYSTEM_PROMPT
-            )
+            self._client = genai.Client(api_key=api_key)
             logger.info(f"Gemini API yapılandırıldı: {self.model_name}")
         except Exception as e:
             logger.error(f"Gemini yapılandırma hatası: {e}")
-            self._model = None
+            self._client = None
     
     @property
     def is_available(self) -> bool:
         """AI hizmeti kullanılabilir mi?"""
-        return self._model is not None
+        return self._client is not None
     
     def set_api_key(self, api_key: str):
         """API anahtarını ayarla."""
@@ -133,8 +126,17 @@ Kurallar:
             return None
         
         try:
-            # Gemini'ye gönder
-            response = self._model.generate_content(f"Paket: {package_name}")
+            # Gemini'ye gönder (yeni API)
+            response = self._client.models.generate_content(
+                model=self.model_name,
+                contents=f"Paket: {package_name}",
+                config=types.GenerateContentConfig(
+                    system_instruction=self.SYSTEM_PROMPT,
+                    temperature=0.3,
+                    max_output_tokens=500,
+                )
+            )
+            
             content = response.text
             
             # JSON parse et
