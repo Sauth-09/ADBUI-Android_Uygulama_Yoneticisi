@@ -474,15 +474,18 @@ class MainWindow(QMainWindow):
         self.package_manager.set_device(self._current_device.serial)
         
         # Varsaki thread çalışıyorsa durdur
-        if self._loader_thread is not None and self._loader_thread.isRunning():
-            self._loader_thread.terminate()  # Zorla durdur (paket listeleme güvenli)
-            self._loader_thread.wait()
+        if self._loader_thread is not None:
+            if self._loader_thread.isRunning():
+                self._loader_thread.terminate()  # Zorla durdur
+                self._loader_thread.wait()       # Bitmesini bekle
+            self._loader_thread = None           # Referansı temizle
         
         # Thread ile yükle
         self._loader_thread = PackageLoaderThread(self.package_manager)
         self._loader_thread.packages_loaded.connect(self._on_packages_loaded)
         self._loader_thread.error_occurred.connect(self._on_load_error)
-        self._loader_thread.finished.connect(self._loader_thread.deleteLater)
+        # deleteLater KULLANMA! Python tarafında referans kalıyor, C++ siliyor -> Crash.
+        # self._loader_thread.finished.connect(self._loader_thread.deleteLater)
         self._loader_thread.start()
         
     def _check_devices_periodically(self):
