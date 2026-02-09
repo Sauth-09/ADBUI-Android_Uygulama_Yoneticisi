@@ -104,7 +104,10 @@ class DeviceManager:
                     device = self._enrich_device_info(device)
                 devices.append(device)
         
-        logger.info(f"{len(devices)} cihaz bulundu")
+        if self._current_device and self._current_device.serial not in [d.serial for d in devices]:
+             logger.info(f"Cihaz bağlantısı koptu: {self._current_device.display_name}")
+        
+        logger.debug(f"{len(devices)} cihaz bulundu")
         return devices
     
     def _parse_device_line(self, line: str) -> Optional[Device]:
