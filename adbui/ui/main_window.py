@@ -550,7 +550,6 @@ class MainWindow(QMainWindow):
             self.device_manager.current_device = device
             self.status_label.setText(f"Bağlı: {device.display_name}")
             self.load_packages_btn.setEnabled(True)
-            logger.info(f"Cihaz seçildi: {device.display_name}")
             
             # Cihaz değiştiyse paketleri temizle (karışıklığı önle)
             self._clear_packages()
