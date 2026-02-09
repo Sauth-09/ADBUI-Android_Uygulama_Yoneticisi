@@ -100,11 +100,19 @@ class BackgroundAnalyzerThread(QThread):
                 self.batch_completed.emit(analyzed)
                 
             except Exception as e:
+                error_msg = str(e)
                 logger.error(f"Batch analiz hatası: {e}")
-                self.error_occurred.emit(str(e))
+                
+                # Kota hatası kontrolü (429 RESOURCE_EXHAUSTED)
+                if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                    logger.warning("AI Kotası aşıldı (Kritik), analiz durduruluyor.")
+                    self.error_occurred.emit("⚠️ AI Kotası Doldu! Analiz Durduruldu.")
+                    # Döngüyü kır ve işlemi bitir (Sürekli deneyip uygulamayı yormaması için)
+                    break
+                
+                self.error_occurred.emit(error_msg)
             
             # Rate limit koruması (5 RPM = 12sn/istek)
-            # Güvenli olması için 15 saniye bekleyelim
             if not self._stop_requested and i + self.batch_size < len(packages_to_analyze):
                 time.sleep(15)
         

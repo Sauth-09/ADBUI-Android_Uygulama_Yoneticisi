@@ -775,8 +775,13 @@ class MainWindow(QMainWindow):
     
     @Slot(str)
     def _on_background_error(self, error: str):
-        """Arka plan analizi hatası."""
+        """Arka plan analiz hatası."""
         logger.error(f"Arka plan analiz hatası: {error}")
+        
+        if "Kota" in error or "RESOURCE_EXHAUSTED" in str(error):
+            self.status_label.setText("🛑 AI Analizi Durduruldu (Kota)")
+        else:
+            self.status_label.setText(f"AI Hatası: {str(error)[:30]}")
     
     @Slot(str)
     def _force_ai_refresh(self, package_name: str):
