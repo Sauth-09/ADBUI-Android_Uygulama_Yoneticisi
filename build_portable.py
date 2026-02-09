@@ -30,6 +30,7 @@ block_cipher = None
 # Dahil edilecek dosyalar (Binaries ve Datas)
 added_files = [
     ('adbui/assets/*', 'adbui/assets'),
+    ('logo.ico', '.'),
 ]
 
 added_binaries = [
@@ -74,6 +75,7 @@ exe_dir = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='logo.ico',
 )
 coll = COLLECT(
     exe_dir,
