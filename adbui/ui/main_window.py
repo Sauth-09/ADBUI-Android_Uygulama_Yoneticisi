@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QSplitter, QToolBar, QStatusBar, QComboBox,
     QPushButton, QLabel, QMessageBox, QApplication
 )
-from PySide6.QtCore import Qt, Signal, Slot, QThread
+from PySide6.QtCore import Qt, Signal, Slot, QThread, QTimer
 from PySide6.QtGui import QAction, QIcon
 import logging
 
@@ -67,6 +67,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("ADBUI - Android Debloat ve Kontrol Aracı")
         self.setMinimumSize(1200, 800)
         
+        # Thread referansları
+        self._loader_thread: Optional[PackageLoaderThread] = None
+        self._device_timer = QTimer(self)
+        self._device_timer.timeout.connect(self._check_devices_periodically)
+        
         # Servisleri başlat
         self._init_services()
         
@@ -79,8 +84,12 @@ class MainWindow(QMainWindow):
         # Log emitter'a bağlan
         log_emitter.connect(self._on_log_message)
         
-        # Cihazları yükle
+        # Cihazları yükle ve izlemeye başla
         self._refresh_devices()
+        
+        # Otomatik algılama aktifse timer'ı başlat
+        if get_config().get('auto_detect_device', True):
+            self._device_timer.start(2000)  # 2 saniyede bir kontrol et
     
     def _init_services(self):
         """Servisleri başlat."""
@@ -436,11 +445,53 @@ class MainWindow(QMainWindow):
         self.status_label.setText("Paketler yükleniyor...")
         self.package_manager.set_device(self._current_device.serial)
         
+        # Varsaki thread çalışıyorsa durdur
+        if self._loader_thread is not None and self._loader_thread.isRunning():
+            self._loader_thread.terminate()  # Zorla durdur (paket listeleme güvenli)
+            self._loader_thread.wait()
+        
         # Thread ile yükle
         self._loader_thread = PackageLoaderThread(self.package_manager)
         self._loader_thread.packages_loaded.connect(self._on_packages_loaded)
         self._loader_thread.error_occurred.connect(self._on_load_error)
+        self._loader_thread.finished.connect(self._loader_thread.deleteLater)
         self._loader_thread.start()
+        
+    def _check_devices_periodically(self):
+        """Periyodik olarak cihazları kontrol et."""
+        # Eğer dropdown açık değilse güncelle (kullanıcı seçim yaparken engelleme)
+        if not self.device_combo.view().isVisible():
+             # Sadece sayı veya durum değiştiyse tam yenileme yap
+             # Şimdilik basitçe her seferinde kontrol ediyoruz
+             # İleride optimizasyon yapılabilir
+             
+             # Mevcut cihaz listesini al
+             current_devices = self.device_manager.get_devices()
+             
+             # Combobox'taki cihaz sayısıyla karşılaştır
+             # (Tam doğru değil ama pratik bir kontrol)
+             # "Cihaz bulunamadı" maddesi varsa count 1 olur ama data None'dır
+             combo_count = self.device_combo.count()
+             combo_has_none = False
+             if combo_count > 0 and self.device_combo.itemData(0) is None:
+                 combo_has_none = True
+                 
+             real_device_count = 0 if combo_has_none else combo_count
+             
+             # Değişiklik varsa yenile
+             if len(current_devices) != real_device_count:
+                 logger.debug("Cihaz değişikliği algılandı, yenileniyor...")
+                 self._refresh_devices()
+             else:
+                 # Sayı aynı olsa bile seri numaraları veya durumları değişmiş olabilir
+                 # Basitlik için şimdilik sadece sayıya bakıyoruz
+                 # Veya mevcut seçili cihazın durumu değişti mi?
+                 if self._current_device:
+                     for d in current_devices:
+                         if d.serial == self._current_device.serial and d.status != self._current_device.status:
+                             logger.info(f"Cihaz durumu değişti: {d.status.value}")
+                             self._refresh_devices()
+                             break
     
     def _refresh_all(self):
         """Tüm verileri yenile."""
@@ -607,4 +658,17 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Pencere kapatılıyor."""
         logger.info("Uygulama kapatılıyor")
+        
+        # Timer'ı durdur
+        if self._device_timer.isActive():
+            self._device_timer.stop()
+        
+        # Thread'i temizle
+        if self._loader_thread is not None:
+            if self._loader_thread.isRunning():
+                self._loader_thread.quit()
+                self._loader_thread.wait(1000)  # 1 saniye bekle
+                if self._loader_thread.isRunning():
+                    self._loader_thread.terminate() # Zorla kapat
+        
         event.accept()
