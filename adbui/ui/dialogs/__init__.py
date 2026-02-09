@@ -1,0 +1,5 @@
+"""
+Dialogs Package
+===============
+Diyalog pencereleri.
+"""
