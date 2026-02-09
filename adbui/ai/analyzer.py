@@ -15,11 +15,20 @@ logger = logging.getLogger(__name__)
 # Google GenAI paketi (yeni SDK)
 try:
     from google import genai
-    from google.genai import types
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
     logger.warning("google-genai paketi yüklü değil. AI özellikleri devre dışı.")
+
+
+# Kullanılabilir modeller
+AVAILABLE_MODELS = [
+    "gemini-2.5-flash",        # En yeni, dengeli
+    "gemini-2.5-flash-lite",   # Hafif ve hızlı
+    "gemini-flash-latest",     # En güncel flash
+]
+
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 @dataclass
@@ -63,7 +72,7 @@ Kurallar:
     def __init__(
         self, 
         api_key: Optional[str] = None,
-        model: str = "gemini-2.0-flash",
+        model: str = DEFAULT_MODEL,
         cache_manager = None
     ):
         """
@@ -71,7 +80,7 @@ Kurallar:
         
         Args:
             api_key: Google Gemini API anahtarı
-            model: Kullanılacak model (gemini-2.0-flash önerilen)
+            model: Kullanılacak model
             cache_manager: Cache yöneticisi (opsiyonel)
         """
         self.api_key = api_key
@@ -102,6 +111,11 @@ Kurallar:
         if GEMINI_AVAILABLE:
             self._configure_gemini(api_key)
     
+    def set_model(self, model: str):
+        """Modeli değiştir."""
+        self.model_name = model
+        logger.info(f"Model değiştirildi: {model}")
+    
     def analyze(self, package_name: str) -> Optional[AIAnalysis]:
         """
         Paketi analiz et.
@@ -126,15 +140,13 @@ Kurallar:
             return None
         
         try:
-            # Gemini'ye gönder (yeni API)
+            # Prompt oluştur
+            prompt = f"{self.SYSTEM_PROMPT}\n\nPaket: {package_name}"
+            
+            # Gemini'ye gönder (yeni basit API)
             response = self._client.models.generate_content(
                 model=self.model_name,
-                contents=f"Paket: {package_name}",
-                config=types.GenerateContentConfig(
-                    system_instruction=self.SYSTEM_PROMPT,
-                    temperature=0.3,
-                    max_output_tokens=500,
-                )
+                contents=prompt,
             )
             
             content = response.text

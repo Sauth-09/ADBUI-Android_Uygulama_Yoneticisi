@@ -20,7 +20,7 @@ class AppConfig:
     
     # AI Ayarları
     openai_api_key: str = ""
-    ai_model: str = "gemini-2.0-flash"
+    ai_model: str = "gemini-2.5-flash"
     ai_enabled: bool = True
     
     # UI Ayarları

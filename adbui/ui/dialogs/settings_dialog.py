@@ -55,9 +55,12 @@ class SettingsDialog(QDialog):
         self.api_key_input.setPlaceholderText("AIza...")
         ai_form.addRow("API Anahtarı:", self.api_key_input)
         
-        self.model_input = QLineEdit()
-        self.model_input.setPlaceholderText("gemini-2.0-flash")
-        ai_form.addRow("Model:", self.model_input)
+        # Model seçici (dropdown)
+        self.model_combo = QComboBox()
+        self.model_combo.addItem("gemini-2.5-flash (Önerilen)", "gemini-2.5-flash")
+        self.model_combo.addItem("gemini-2.5-flash-lite (Hızlı)", "gemini-2.5-flash-lite")
+        self.model_combo.addItem("gemini-flash-latest (En Güncel)", "gemini-flash-latest")
+        ai_form.addRow("Model:", self.model_combo)
         
         self.ai_enabled = QCheckBox("AI özelliklerini etkinleştir")
         ai_form.addRow("", self.ai_enabled)
@@ -150,7 +153,10 @@ class SettingsDialog(QDialog):
         config = self.config.config
         
         self.api_key_input.setText(config.openai_api_key)
-        self.model_input.setText(config.ai_model)
+        # Model combo'da doğru modeli seç
+        model_index = self.model_combo.findData(config.ai_model)
+        if model_index >= 0:
+            self.model_combo.setCurrentIndex(model_index)
         self.ai_enabled.setChecked(config.ai_enabled)
         
         self.cache_enabled.setChecked(config.cache_enabled)
@@ -169,7 +175,7 @@ class SettingsDialog(QDialog):
         config = self.config.config
         
         config.openai_api_key = self.api_key_input.text().strip()
-        config.ai_model = self.model_input.text().strip() or "gemini-2.0-flash"
+        config.ai_model = self.model_combo.currentData() or "gemini-2.5-flash"
         config.ai_enabled = self.ai_enabled.isChecked()
         
         config.cache_enabled = self.cache_enabled.isChecked()
