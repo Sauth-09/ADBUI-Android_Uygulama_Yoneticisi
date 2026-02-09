@@ -47,16 +47,16 @@ class SettingsDialog(QDialog):
         ai_tab = QWidget()
         ai_layout = QVBoxLayout(ai_tab)
         
-        ai_group = QGroupBox("OpenAI API")
+        ai_group = QGroupBox("Google Gemini API")
         ai_form = QFormLayout(ai_group)
         
         self.api_key_input = QLineEdit()
         self.api_key_input.setEchoMode(QLineEdit.Password)
-        self.api_key_input.setPlaceholderText("sk-...")
+        self.api_key_input.setPlaceholderText("AIza...")
         ai_form.addRow("API Anahtarı:", self.api_key_input)
         
         self.model_input = QLineEdit()
-        self.model_input.setPlaceholderText("gpt-3.5-turbo")
+        self.model_input.setPlaceholderText("gemini-2.0-flash")
         ai_form.addRow("Model:", self.model_input)
         
         self.ai_enabled = QCheckBox("AI özelliklerini etkinleştir")
@@ -169,7 +169,7 @@ class SettingsDialog(QDialog):
         config = self.config.config
         
         config.openai_api_key = self.api_key_input.text().strip()
-        config.ai_model = self.model_input.text().strip() or "gpt-3.5-turbo"
+        config.ai_model = self.model_input.text().strip() or "gemini-2.0-flash"
         config.ai_enabled = self.ai_enabled.isChecked()
         
         config.cache_enabled = self.cache_enabled.isChecked()

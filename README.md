@@ -1,12 +1,17 @@
-<<<<<<< HEAD
 # ADBUI - Android Debloat ve Kontrol Aracı
 
-## Gereksinimler
+Profesyonel Android uygulama yönetim aracı. ADB kullanarak normalde kaldırılamayan uygulamaları kaldır, arka planı kısıtla, dondur ve her sistem uygulamasının ne işe yaradığını öğren.
 
-```
-PySide6>=6.5.0
-openai>=1.0.0
-```
+## Özellikler
+
+- 📱 USB ile bağlı Android cihazları otomatik algılar
+- 📦 Sistem, kullanıcı ve devre dışı paketleri listeler
+- 🗑️ Paket kaldırma (user 0)
+- ❄️ Paket dondurma/etkinleştirme
+- ⚙️ AppOps yönetimi (arka plan, wake lock)
+- 💤 Standby Bucket ayarları
+- 🤖 AI tabanlı paket analizi (Google Gemini - Ücretsiz)
+- 🎨 Modern koyu tema arayüz
 
 ## Kurulum
 
@@ -21,17 +26,6 @@ cd platform-tools
 python main.py
 ```
 
-## Özellikler
-
-- 📱 USB ile bağlı Android cihazları otomatik algılar
-- 📦 Sistem, kullanıcı ve devre dışı paketleri listeler
-- 🗑️ Paket kaldırma (user 0)
-- ❄️ Paket dondurma/etkinleştirme
-- ⚙️ AppOps yönetimi (arka plan, wake lock)
-- 💤 Standby Bucket ayarları
-- 🤖 AI tabanlı paket analizi (OpenAI)
-- 🎨 Modern koyu tema arayüz
-
 ## Yapı
 
 ```
@@ -42,16 +36,22 @@ platform-tools/
 └── adbui/             # Ana paket
     ├── core/          # ADB servisleri
     ├── ui/            # PySide6 arayüz
-    ├── ai/            # OpenAI entegrasyonu
+    ├── ai/            # Google Gemini entegrasyonu
     ├── models/        # Veri modelleri
     ├── utils/         # Yardımcı araçlar
     └── data/          # Cache ve veri
 ```
 
+## AI Özellikleri
+
+**Google Gemini API (Ücretsiz)** kullanarak her paket için:
+- Paketin ne işe yaradığını açıklar
+- Kaldırmanın güvenli olup olmadığını belirtir
+- Kaldırılırsa olası etkileri anlatır
+- Alternatif yöntemler önerir (dondurma, appops)
+
+API anahtarı almak için: [Google AI Studio](https://aistudio.google.com/apikey)
+
 ## Lisans
 
 MIT License
-=======
-# ADBUI-Ak-ll-Uygulama-Y-neticisi
-android adb ile normalde kaldırılamayan uygulamaları kaldır, arka planı kısıtla,dondur, hengi sistem uygulamasının ne işe yaradığını öğren.
->>>>>>> a4aa34683d58fc8b669dfdb4a76231492555bcdb

@@ -1,7 +1,7 @@
 """
 AI Analyzer Module
 ==================
-OpenAI API entegrasyonu ile paket analizi.
+Google Gemini API entegrasyonu ile paket analizi.
 """
 
 import json
@@ -11,13 +11,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# OpenAI paketi opsiyonel
+# Google Generative AI paketi
 try:
-    import openai
-    OPENAI_AVAILABLE = True
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
 except ImportError:
-    OPENAI_AVAILABLE = False
-    logger.warning("openai paketi yüklü değil. AI özellikleri devre dışı.")
+    GEMINI_AVAILABLE = False
+    logger.warning("google-generativeai paketi yüklü değil. AI özellikleri devre dışı.")
 
 
 @dataclass
@@ -36,7 +36,7 @@ class PackageAnalyzer:
     """
     Yapay zeka tabanlı paket analizci.
     
-    OpenAI API kullanarak paketler hakkında bilgi sağlar.
+    Google Gemini API kullanarak paketler hakkında bilgi sağlar.
     """
     
     # Sistem prompt'u
@@ -45,7 +45,7 @@ class PackageAnalyzer:
 Yanıtını aşağıdaki JSON formatında ver:
 {
     "description": "Paketin ne işe yaradığı (Türkçe, 1-2 cümle)",
-    "safety_score": 1-10 arası güvenlik skoru (10=çok güvenli),
+    "safety_score": 1-10 arası güvenlik skoru (10=çok güvenli kaldırılabilir),
     "safe_to_remove": true/false,
     "removal_impact": "Kaldırılırsa ne olur? (Türkçe)",
     "alternative_action": "Alternatif öneri: freeze/appops/none (Türkçe açıklama)",
@@ -53,43 +53,61 @@ Yanıtını aşağıdaki JSON formatında ver:
 }
 
 Kurallar:
-- Sistem kritik paketleri (systemui, settings, phone) için safe_to_remove: false
-- Bloatware için safe_to_remove: true
-- Bilinmeyen paketler için ihtiyatlı ol
-- Her zaman geçerli JSON döndür"""
+- Sistem kritik paketleri (systemui, settings, phone, launcher) için safe_to_remove: false ve safety_score: 1-3
+- Bloatware ve gereksiz uygulamalar için safe_to_remove: true ve safety_score: 8-10
+- Bilinmeyen paketler için ihtiyatlı ol, safety_score: 5
+- Her zaman geçerli JSON döndür, başka bir şey yazma"""
 
     def __init__(
         self, 
         api_key: Optional[str] = None,
-        model: str = "gpt-3.5-turbo",
+        model: str = "gemini-2.0-flash",
         cache_manager = None
     ):
         """
         Analyzer'ı başlat.
         
         Args:
-            api_key: OpenAI API anahtarı
-            model: Kullanılacak model
+            api_key: Google Gemini API anahtarı
+            model: Kullanılacak model (gemini-2.0-flash önerilen)
             cache_manager: Cache yöneticisi (opsiyonel)
         """
         self.api_key = api_key
-        self.model = model
+        self.model_name = model
         self.cache = cache_manager
-        self._client = None
+        self._model = None
         
-        if api_key and OPENAI_AVAILABLE:
-            self._client = openai.OpenAI(api_key=api_key)
+        if api_key and GEMINI_AVAILABLE:
+            self._configure_gemini(api_key)
+    
+    def _configure_gemini(self, api_key: str):
+        """Gemini API'yi yapılandır."""
+        try:
+            genai.configure(api_key=api_key)
+            self._model = genai.GenerativeModel(
+                model_name=self.model_name,
+                generation_config={
+                    "temperature": 0.3,
+                    "top_p": 0.95,
+                    "max_output_tokens": 500,
+                },
+                system_instruction=self.SYSTEM_PROMPT
+            )
+            logger.info(f"Gemini API yapılandırıldı: {self.model_name}")
+        except Exception as e:
+            logger.error(f"Gemini yapılandırma hatası: {e}")
+            self._model = None
     
     @property
     def is_available(self) -> bool:
         """AI hizmeti kullanılabilir mi?"""
-        return self._client is not None
+        return self._model is not None
     
     def set_api_key(self, api_key: str):
         """API anahtarını ayarla."""
         self.api_key = api_key
-        if OPENAI_AVAILABLE:
-            self._client = openai.OpenAI(api_key=api_key)
+        if GEMINI_AVAILABLE:
+            self._configure_gemini(api_key)
     
     def analyze(self, package_name: str) -> Optional[AIAnalysis]:
         """
@@ -115,17 +133,9 @@ Kurallar:
             return None
         
         try:
-            response = self._client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": self.SYSTEM_PROMPT},
-                    {"role": "user", "content": f"Paket: {package_name}"}
-                ],
-                temperature=0.3,
-                max_tokens=500
-            )
-            
-            content = response.choices[0].message.content
+            # Gemini'ye gönder
+            response = self._model.generate_content(f"Paket: {package_name}")
+            content = response.text
             
             # JSON parse et
             analysis = self._parse_response(content)
@@ -144,18 +154,25 @@ Kurallar:
         try:
             # JSON bloğunu bul
             content = content.strip()
-            if content.startswith('```'):
-                # Markdown code block içinde olabilir
+            
+            # Markdown code block içinde olabilir
+            if '```' in content:
                 lines = content.split('\n')
                 json_lines = []
                 in_block = False
                 for line in lines:
-                    if line.startswith('```'):
+                    if line.strip().startswith('```'):
                         in_block = not in_block
                         continue
-                    if in_block or not line.startswith('```'):
+                    if in_block:
                         json_lines.append(line)
                 content = '\n'.join(json_lines)
+            
+            # JSON'u bul (süslü parantezler arası)
+            start = content.find('{')
+            end = content.rfind('}') + 1
+            if start != -1 and end > start:
+                content = content[start:end]
             
             data = json.loads(content)
             
@@ -169,7 +186,7 @@ Kurallar:
             )
             
         except json.JSONDecodeError as e:
-            logger.error(f"JSON parse hatası: {e}")
+            logger.error(f"JSON parse hatası: {e}\nİçerik: {content[:200]}")
             return None
     
     def analyze_batch(
