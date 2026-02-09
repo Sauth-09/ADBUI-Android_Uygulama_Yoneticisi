@@ -697,12 +697,14 @@ class MainWindow(QMainWindow):
         if self._device_timer.isActive():
             self._device_timer.stop()
         
-        # Thread'i temizle
-        if self._loader_thread is not None:
-            if self._loader_thread.isRunning():
+        # Thread'i temizle (C++ objesi silinmiş olabilir)
+        try:
+            if self._loader_thread is not None and self._loader_thread.isRunning():
                 self._loader_thread.quit()
-                self._loader_thread.wait(1000)  # 1 saniye bekle
+                self._loader_thread.wait(1000)
                 if self._loader_thread.isRunning():
-                    self._loader_thread.terminate() # Zorla kapat
+                    self._loader_thread.terminate()
+        except RuntimeError:
+            pass  # C++ object already deleted
         
         event.accept()

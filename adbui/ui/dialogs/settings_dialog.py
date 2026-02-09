@@ -6,7 +6,7 @@ Uygulama ayarları diyaloğu.
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLineEdit, QPushButton, QCheckBox, QSpinBox,
+    QLineEdit, QPushButton, QCheckBox, QSpinBox, QComboBox,
     QTabWidget, QWidget, QLabel, QGroupBox, QMessageBox
 )
 from PySide6.QtCore import Qt
