@@ -42,6 +42,9 @@ class AICache:
     def _init_db(self):
         """Veritabanını oluştur."""
         with sqlite3.connect(self.db_path) as conn:
+            # Performans ve eşzamanlılık için WAL modu
+            conn.execute("PRAGMA journal_mode=WAL;")
+            
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS analysis_cache (
                     package_name TEXT PRIMARY KEY,
