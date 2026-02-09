@@ -26,6 +26,7 @@ from ..core.device_manager import DeviceManager, Device
 from ..core.package_manager import PackageManager, Package
 from ..ai.analyzer import PackageAnalyzer
 from ..ai.cache import AICache
+from ..ai.background_analyzer import BackgroundAnalyzerThread
 from ..utils.config import get_config
 from ..utils.logger import log_emitter
 
@@ -101,15 +102,16 @@ class MainWindow(QMainWindow):
             self.package_manager = PackageManager(self.adb_service)
             
             # AI servisi
-            cache = AICache() if config.get('cache_enabled') else None
+            self.ai_cache = AICache() if config.get('cache_enabled', True) else AICache()  # Her zaman cache kullan
             self.ai_analyzer = PackageAnalyzer(
                 api_key=config.get('openai_api_key'),
-                cache_manager=cache
+                cache_manager=self.ai_cache
             )
             
             self._current_device: Optional[Device] = None
             self._packages: List[Package] = []
             self._selected_package: Optional[Package] = None
+            self._background_analyzer: Optional[BackgroundAnalyzerThread] = None
             
         except FileNotFoundError as e:
             QMessageBox.critical(
@@ -570,6 +572,9 @@ class MainWindow(QMainWindow):
         self.status_label.setText("Hazır")
         
         logger.info(f"{count} paket yüklendi")
+        
+        # Arka planda AI analizini başlat
+        self._start_background_analysis(packages)
     
     @Slot(str)
     def _on_load_error(self, error: str):
@@ -584,7 +589,15 @@ class MainWindow(QMainWindow):
         self._selected_package = package
         self.package_details.set_package(package)
         
-        # AI analizi başlat
+        # Önce cache'e bak
+        if self.ai_cache:
+            cached_analysis = self.ai_cache.get(package.name)
+            if cached_analysis:
+                # Cache'den direkt göster (hızlı!)
+                self.ai_panel.set_analysis(cached_analysis)
+                return
+        
+        # Cache'de yok, AI analizi başlat (arka plan işlemi devam ediyorsa bekleyecek)
         if self.ai_analyzer.is_available:
             self.ai_panel.set_loading(True)
             analysis = self.ai_analyzer.analyze(package.name)
@@ -692,6 +705,60 @@ class MainWindow(QMainWindow):
         """Log mesajı geldi."""
         self.log_panel.append_log(message, level)
     
+    # ===== ARKA PLAN ANALİZİ =====
+    
+    def _start_background_analysis(self, packages: List[Package]):
+        """Arka planda AI analizini başlat."""
+        if not self.ai_analyzer.is_available:
+            logger.warning("AI analizi kullanılamıyor, arka plan analizi atlanıyor")
+            return
+        
+        # Önceki thread varsa durdur
+        if self._background_analyzer and self._background_analyzer.isRunning():
+            self._background_analyzer.stop()
+            self._background_analyzer.wait(2000)
+        
+        # Yeni thread oluştur
+        self._background_analyzer = BackgroundAnalyzerThread(
+            packages=packages,
+            analyzer=self.ai_analyzer,
+            cache=self.ai_cache,
+            batch_size=10
+        )
+        
+        # Sinyalleri bağla
+        self._background_analyzer.progress_updated.connect(self._on_background_progress)
+        self._background_analyzer.package_analyzed.connect(self._on_background_package_analyzed)
+        self._background_analyzer.all_completed.connect(self._on_background_completed)
+        self._background_analyzer.error_occurred.connect(self._on_background_error)
+        
+        # Başlat
+        self._background_analyzer.start()
+        logger.info("Arka plan AI analizi başlatıldı")
+    
+    @Slot(int, int)
+    def _on_background_progress(self, current: int, total: int):
+        """Arka plan analizi ilerleme durumu."""
+        self.status_label.setText(f"AI Analizi: {current}/{total}")
+    
+    @Slot(str, object)
+    def _on_background_package_analyzed(self, package_name: str, analysis):
+        """Bir paket arka planda analiz edildi."""
+        # Eğer şu an bu paket seçiliyse, paneli güncelle
+        if self._selected_package and self._selected_package.name == package_name:
+            self.ai_panel.set_analysis(analysis)
+    
+    @Slot(int)
+    def _on_background_completed(self, total_analyzed: int):
+        """Arka plan analizi tamamlandı."""
+        self.status_label.setText("Hazır")
+        logger.info(f"Arka plan AI analizi tamamlandı: {total_analyzed} paket analiz edildi")
+    
+    @Slot(str)
+    def _on_background_error(self, error: str):
+        """Arka plan analizi hatası."""
+        logger.error(f"Arka plan analiz hatası: {error}")
+    
     def closeEvent(self, event):
         """Pencere kapatılıyor."""
         logger.info("Uygulama kapatılıyor")
@@ -700,7 +767,15 @@ class MainWindow(QMainWindow):
         if self._device_timer.isActive():
             self._device_timer.stop()
         
-        # Thread'i temizle (C++ objesi silinmiş olabilir)
+        # Background analyzer'ı durdur
+        try:
+            if self._background_analyzer and self._background_analyzer.isRunning():
+                self._background_analyzer.stop()
+                self._background_analyzer.wait(2000)
+        except RuntimeError:
+            pass
+        
+        # Loader thread'i temizle (C++ objesi silinmiş olabilir)
         try:
             if self._loader_thread is not None and self._loader_thread.isRunning():
                 self._loader_thread.quit()
