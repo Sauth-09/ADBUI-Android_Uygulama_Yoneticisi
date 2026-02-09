@@ -273,7 +273,7 @@ Analiz edilecek paketler:
             
         except Exception as e:
             logger.error(f"Toplu AI analizi başarısız: {e}")
-            return results
+            raise e
 
     def _parse_batch_response(self, content: str) -> Dict[str, AIAnalysis]:
         """Batch API yanıtını parse et."""

@@ -74,24 +74,13 @@ class BackgroundAnalyzerThread(QThread):
                 results = self.analyzer.analyze_multiple(batch_names)
                 
                 if results:
-                    batch_success_count = 0
                     for pkg in batch:
                         if pkg.name in results:
                             analysis = results[pkg.name]
-                            batch_success_count += 1
                             analyzed += 1
                             self.package_analyzed.emit(pkg.name, analysis)
-                    
-                    # Sonuç boşsa ve durdurulmadıysa rate limit olabilir
-                    if batch_success_count == 0 and not self._stop_requested:
-                        logger.warning("Batch analizi boş döndü, rate limit olabilir. 30sn bekleniyor...")
-                        self.error_occurred.emit("AI Kotası aşıldı, 30sn bekleniyor...")
-                        time.sleep(30)
                 else:
-                    if not self._stop_requested:
-                         logger.warning("Batch analizi boş döndü. Rate limit olabilir.")
-                         self.error_occurred.emit("AI Kotası aşıldı, 30sn bekleniyor...")
-                         time.sleep(30)
+                    logger.warning(f"Batch {i} analizi boş sonuç döndü (JSON hatası olabilir)")
 
                 # Progress güncelle
                 self.progress_updated.emit(analyzed + skipped, total)
