@@ -11,6 +11,7 @@ from enum import Enum
 import logging
 
 from .adb_service import ADBService
+from ..data.permissions import get_appops_for_permission
 
 logger = logging.getLogger(__name__)
 
@@ -407,3 +408,152 @@ class PackageManager:
             logger.error(f"Gelişmiş detay hatası: {e}")
             
         return details
+
+    def get_permissions(self, package_name: str) -> List[Dict[str, Any]]:
+        """
+        Paketin izinlerini ve durumlarını al.
+        
+        Args:
+            package_name: Paket adı
+            
+        Returns:
+            List[Dict]: İzin listesi [{'name': str, 'granted': bool}]
+        """
+        result = self.adb.shell(
+            f"dumpsys package {package_name}", 
+            device_serial=self.device_serial
+        )
+        
+        if not result.success:
+            logger.error(f"İzinler alınamadı: {result.stderr}")
+            return []
+            
+        output = result.stdout
+        permissions = []
+        requested_permissions = []
+        granted_permissions = set()
+        
+        lines = output.splitlines()
+        
+        # 1. Parsing
+        runtime_perms_set = set()
+        
+        current_block = None
+        
+        for line in lines:
+            line_stripped = line.strip()
+            
+            # Blok tespiti
+            if "runtime permissions:" in line_stripped:
+                current_block = "runtime"
+                continue
+            elif "install permissions:" in line_stripped:
+                current_block = "install"
+                continue
+            elif "requested permissions:" in line_stripped:
+                 current_block = "requested"
+                 continue
+            elif line_stripped.endswith(":") and not line_stripped.startswith("android.") and not line_stripped.startswith("com."):
+                 current_block = None
+            
+            # Blok içeriği analizi
+            if current_block == "requested":
+                 if "." in line_stripped:
+                     perm = line_stripped.split(":")[0].strip()
+                     requested_permissions.append(perm)
+                     
+            elif current_block == "runtime":
+                 if "." in line_stripped:
+                     perm = line_stripped.split(":")[0].strip()
+                     runtime_perms_set.add(perm)
+                     if "granted=true" in line_stripped:
+                         granted_permissions.add(perm)
+                         
+            elif current_block == "install":
+                 if "." in line_stripped:
+                     perm = line_stripped.split(":")[0].strip()
+                     if "granted=true" in line_stripped:
+                         granted_permissions.add(perm)
+
+        # Fallback: Eğer runtime bloğu hiç yoksa ama requested varsa
+        if not runtime_perms_set and not granted_permissions:
+             for line in lines:
+                if ": granted=true" in line:
+                    perm = line.split(":")[0].strip()
+                    granted_permissions.add(perm)
+
+        # Sonuç
+        seen_perms = set()
+        for perm in requested_permissions:
+            if perm in seen_perms: continue
+            seen_perms.add(perm)
+            
+            # Runtime listesinde varsa değiştirilebilir
+            changeable = perm in runtime_perms_set
+            
+            permissions.append({
+                "name": perm,
+                "granted": perm in granted_permissions,
+                "changeable": changeable
+            })
+                
+        return permissions
+
+    def grant_permission(self, package_name: str, permission: str) -> bool:
+        """
+        İzni ver (Sadece runtime izinleri).
+        """
+        # 1. PM Grant
+        result = self.adb.shell(
+            f"pm grant {package_name} {permission}",
+            device_serial=self.device_serial
+        )
+        
+        if result.success:
+            logger.info(f"İzin verildi (pm): {package_name} -> {permission}")
+            return True
+            
+        # 2. AppOps Fallback
+        op_name = get_appops_for_permission(permission)
+        if op_name:
+            logger.warning(f"PM grant başarısız, AppOps deneniyor ({op_name})...")
+            result = self.adb.shell(
+                f"cmd appops set {package_name} {op_name} allow",
+                device_serial=self.device_serial
+            )
+            if result.success:
+                 logger.info(f"İzin verildi (appops): {package_name} -> {permission}")
+                 return True
+        
+        logger.error(f"İzin verilemedi: {result.stderr}")
+        return False
+
+    def revoke_permission(self, package_name: str, permission: str) -> bool:
+        """
+        İzni geri al (Sadece runtime izinleri).
+        """
+        # 1. PM Revoke
+        result = self.adb.shell(
+            f"pm revoke {package_name} {permission}",
+            device_serial=self.device_serial
+        )
+        
+        if result.success:
+            logger.info(f"İzin geri alındı (pm): {package_name} -> {permission}")
+            return True
+            
+        # 2. AppOps Fallback
+        op_name = get_appops_for_permission(permission)
+        if op_name:
+            logger.warning(f"PM revoke başarısız, AppOps deneniyor ({op_name})...")
+            result = self.adb.shell(
+                f"cmd appops set {package_name} {op_name} ignore",
+                device_serial=self.device_serial
+            )
+            if result.success:
+                 logger.info(f"İzin geri alındı (appops): {package_name} -> {permission}")
+                 return True
+
+        logger.error(f"İzin geri alınamadı: {result.stderr}")
+        return False
+

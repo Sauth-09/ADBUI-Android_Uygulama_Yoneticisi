@@ -126,6 +126,11 @@ class PackageDetailsWidget(QWidget):
         self.enable_btn.clicked.connect(self._on_enable)
         main_actions.addWidget(self.enable_btn)
         
+        self.permissions_btn = QPushButton("🛡️ İzinler")
+        self.permissions_btn.setStyleSheet("background-color: #6f42c1; color: white;")
+        self.permissions_btn.clicked.connect(self._on_permissions)
+        main_actions.addWidget(self.permissions_btn)
+        
         actions_layout.addLayout(main_actions)
         
         # Ayırıcı
@@ -276,6 +281,7 @@ class PackageDetailsWidget(QWidget):
         self.uninstall_btn.setEnabled(enabled)
         self.freeze_btn.setEnabled(enabled)
         self.enable_btn.setEnabled(enabled)
+        self.permissions_btn.setEnabled(enabled)
         self.appops_combo.setEnabled(enabled)
         self.bucket_combo.setEnabled(enabled)
     
@@ -293,6 +299,11 @@ class PackageDetailsWidget(QWidget):
         """Etkinleştir butonu tıklandı."""
         if self._current_package:
             self.action_requested.emit("enable", self._current_package)
+
+    def _on_permissions(self):
+        """İzinler butonu tıklandı."""
+        if self._current_package:
+            self.action_requested.emit("permissions", self._current_package)
     
     def _on_appops_changed(self, index: int):
         """AppOps seçimi değişti."""

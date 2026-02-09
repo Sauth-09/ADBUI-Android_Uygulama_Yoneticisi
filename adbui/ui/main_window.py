@@ -21,6 +21,7 @@ from .widgets.package_details import PackageDetailsWidget
 from .widgets.ai_panel import AIPanelWidget
 from .widgets.log_panel import LogPanelWidget
 from .dialogs.settings_dialog import SettingsDialog
+from .dialogs.permissions_dialog import PermissionsDialog
 
 from ..core.adb_service import ADBService
 from ..core.device_manager import DeviceManager, Device
@@ -65,6 +66,7 @@ class MainWindow(QMainWindow):
     
     refresh_finished = Signal(object)
     advanced_info_loaded = Signal(dict)
+    log_received = Signal(str, str)  # Thread-safe log sinyali
     
     def __init__(self):
         super().__init__()
@@ -92,8 +94,8 @@ class MainWindow(QMainWindow):
         # Sinyal bağlantıları (UI Bileşenleri oluşturulduktan sonra)
         self.advanced_info_loaded.connect(self.package_details.update_advanced_info)
         
-        # Log emitter'a bağlan
-        log_emitter.connect(self._on_log_message)
+        # Log sistemini bağla (Thread-Safe)
+        self._init_logging_signals()
         
         # Cihazları yükle ve izlemeye başla
         self._refresh_devices()
@@ -102,6 +104,14 @@ class MainWindow(QMainWindow):
         if get_config().get('auto_detect_device', True):
             self._device_timer.start(2000)  # 2 saniyede bir kontrol et
     
+    def _init_logging_signals(self):
+        """Log sinyallerini bağla (Thread-Safe UI Updates)."""
+        # Log emitter'dan gelen sinyali yakala
+        log_emitter.connect(self.log_received.emit)
+        
+        # Sinyali slot'a bağla (Otomatik QueuedConnection)
+        self.log_received.connect(self._on_log_message)
+
     def _init_services(self):
         """Servisleri başlat."""
         config = get_config()
@@ -652,6 +662,8 @@ class MainWindow(QMainWindow):
             self._disable_package(package)
         elif action == "enable":
             self._enable_package(package)
+        elif action == "permissions":
+            self._show_permissions_dialog(package)
         elif action.startswith("appops:"):
             parts = action.split(":")
             if len(parts) == 3:
@@ -735,6 +747,10 @@ class MainWindow(QMainWindow):
             # Ayarlar değiştiyse AI'ı güncelle
             config = get_config()
             self.ai_analyzer.set_api_key(config.get('openai_api_key'))
+    def _show_permissions_dialog(self, package: Package):
+        """İzinler dialogunu göster."""
+        dialog = PermissionsDialog(self.package_manager, package.name, self)
+        dialog.exec()
     
     def _on_log_message(self, message: str, level: str):
         """Log mesajı geldi."""
