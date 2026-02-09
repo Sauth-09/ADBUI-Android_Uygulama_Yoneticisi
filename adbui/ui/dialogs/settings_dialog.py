@@ -120,6 +120,24 @@ class SettingsDialog(QDialog):
         self.clear_db_btn.clicked.connect(self._clear_db)
         
         maint_layout.addWidget(self.clear_logs_btn)
+        
+        self.open_logs_btn = QPushButton("Log Klasörünü Aç")
+        self.open_logs_btn.setToolTip("Hata loglarını incelemek için klasörü açar.")
+        self.open_logs_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #17a2b8;
+                color: white;
+                border: none;
+                padding: 5px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+            }
+        """)
+        self.open_logs_btn.clicked.connect(self._open_logs)
+        maint_layout.addWidget(self.open_logs_btn)
+        
         maint_layout.addWidget(self.clear_db_btn)
         
         ai_layout.addWidget(maint_group)
@@ -285,3 +303,17 @@ class SettingsDialog(QDialog):
             except Exception as e:
                 logger.error(f"Log temizleme hatası: {e}")
                 QMessageBox.critical(self, "Hata", f"Loglar temizlenemedi:\n{e}")
+                
+    def _open_logs(self):
+        """Log klasörünü aç."""
+        try:
+            log_dir = Path.home() / ".adbui" / "logs"
+            if not log_dir.exists():
+                log_dir.mkdir(parents=True, exist_ok=True)
+                
+            import os
+            # Windows için klasör aç
+            os.startfile(log_dir)
+        except Exception as e:
+            logger.error(f"Log klasörü açılamadı: {e}")
+            QMessageBox.critical(self, "Hata", f"Log klasörü açılamadı:\n{e}")
