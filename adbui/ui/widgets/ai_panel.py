@@ -7,9 +7,9 @@ Sağ panel - AI paket analizi ve önerileri.
 from typing import Optional
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-    QProgressBar, QScrollArea
+    QProgressBar, QScrollArea, QPushButton
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 import logging
 
 from ...ai.analyzer import AIAnalysis
@@ -24,8 +24,11 @@ class AIPanelWidget(QWidget):
     Seçili paketin AI analizini gösterir.
     """
     
+    refresh_requested = Signal(str)  # package_name
+    
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.current_package: Optional[str] = None
         self._setup_ui()
     
     def _setup_ui(self):
@@ -56,6 +59,30 @@ class AIPanelWidget(QWidget):
         """)
         self.cache_badge.hide()
         header.addWidget(self.cache_badge)
+        
+        header.addStretch()
+        
+        # Güncelle butonu
+        self.refresh_btn = QPushButton("🔄")
+        self.refresh_btn.setToolTip("AI analizini yeniden yap")
+        self.refresh_btn.setFixedSize(28, 28)
+        self.refresh_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3d3d5c;
+                border: none;
+                border-radius: 14px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #4d4d6c;
+            }
+            QPushButton:pressed {
+                background-color: #2d2d4c;
+            }
+        """)
+        self.refresh_btn.clicked.connect(self._on_refresh_clicked)
+        self.refresh_btn.hide()  # Paket seçilene kadar gizli
+        header.addWidget(self.refresh_btn)
         
         layout.addLayout(header)
         
@@ -291,6 +318,7 @@ class AIPanelWidget(QWidget):
             self.unavailable_widget.hide()
             self.loading_widget.show()
             self.cache_badge.hide()
+            self.refresh_btn.hide()
         else:
             self.loading_widget.hide()
     
@@ -305,11 +333,25 @@ class AIPanelWidget(QWidget):
         
         self.content_widget.show()
         
+        self.refresh_btn.show()
+        
         # Cache badge
-        if analysis.is_cached:
-            self.cache_badge.show()
-        else:
-            self.cache_badge.hide()
+        is_cached = analysis.is_cached
+        text = "Veritabanından (Cache)" if is_cached else "Canlı Analiz"
+        color = "#6c757d" if is_cached else "#28a745"
+        
+        self.cache_badge.setText(text)
+        self.cache_badge.setStyleSheet(f"""
+            QLabel {{
+                background-color: {color};
+                color: white;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-size: 11px;
+                font-weight: bold;
+            }}
+        """)
+        self.cache_badge.show()
         
         # Güvenlik skoru ve sonuç kartı
         score = analysis.safety_score
@@ -397,7 +439,13 @@ class AIPanelWidget(QWidget):
         self.loading_widget.hide()
         self.cache_badge.hide()
         self.unavailable_widget.show()
+        self.refresh_btn.hide()
     
     def clear(self):
         """Paneli temizle (public)."""
         self._show_placeholder()
+    
+    def _on_refresh_clicked(self):
+        """Yenile butonuna tıklandı."""
+        if self.current_package:
+            self.refresh_requested.emit(self.current_package)

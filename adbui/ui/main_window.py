@@ -5,6 +5,7 @@ ADBUI ana penceresi - 3 panelli modern UI.
 """
 
 import sys
+import threading
 from typing import Optional, List
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -62,8 +63,13 @@ class MainWindow(QMainWindow):
     - Alt: Log paneli
     """
     
+    refresh_finished = Signal(object)
+    
     def __init__(self):
         super().__init__()
+        
+        # Sinyal bağlantıları
+        self.refresh_finished.connect(self._on_ai_refresh_done)
         
         self.setWindowTitle("ADBUI - Android Debloat ve Kontrol Aracı")
         self.setMinimumSize(1000, 700) # 1366x768 ekranlar için optimize edildi
@@ -150,6 +156,7 @@ class MainWindow(QMainWindow):
         
         # Sağ panel - AI önerisi
         self.ai_panel = AIPanelWidget()
+        self.ai_panel.refresh_requested.connect(self._force_ai_refresh)
         top_splitter.addWidget(self.ai_panel)
         
         # Splitter oranları
@@ -588,6 +595,7 @@ class MainWindow(QMainWindow):
         """Paket seçildi."""
         self._selected_package = package
         self.package_details.set_package(package)
+        self.ai_panel.current_package = package.name
         
         # Önce cache'e bak
         if self.ai_cache:
@@ -758,6 +766,33 @@ class MainWindow(QMainWindow):
     def _on_background_error(self, error: str):
         """Arka plan analizi hatası."""
         logger.error(f"Arka plan analiz hatası: {error}")
+    
+    @Slot(str)
+    def _force_ai_refresh(self, package_name: str):
+        """AI analizini zorla yenile."""
+        logger.info(f"AI analizi yenileniyor: {package_name}")
+        self.ai_panel.set_loading(True)
+        
+        # Cache'den sil
+        if self.ai_cache:
+            self.ai_cache.delete(package_name)
+            
+        def run():
+            if self.ai_analyzer:
+                # Cache silindiği için API'ye gidecek
+                try:
+                    analysis = self.ai_analyzer.analyze(package_name)
+                    self.refresh_finished.emit(analysis)
+                except Exception as e:
+                    logger.error(f"Yenileme hatası: {e}")
+                    self.refresh_finished.emit(None)
+                
+        threading.Thread(target=run, daemon=True).start()
+
+    @Slot(object)
+    def _on_ai_refresh_done(self, analysis):
+        """Yenileme tamamlandı."""
+        self.ai_panel.set_analysis(analysis)
     
     def closeEvent(self, event):
         """Pencere kapatılıyor."""
