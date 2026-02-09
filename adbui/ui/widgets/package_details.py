@@ -126,15 +126,28 @@ class PackageDetailsWidget(QWidget):
         
         # Standby Bucket
         bucket_layout = QHBoxLayout()
-        bucket_layout.addWidget(QLabel("Standby:"))
+        # Standby Bucket
+        bucket_layout = QHBoxLayout()
+        bucket_layout.addWidget(QLabel("Çalışma Modu (Standby):"))
         
         self.bucket_combo = QComboBox()
         self.bucket_combo.addItem("Seçin...", None)
-        self.bucket_combo.addItem("🟢 Active", "active")
-        self.bucket_combo.addItem("🟡 Working Set", "working_set")
-        self.bucket_combo.addItem("🟠 Frequent", "frequent")
-        self.bucket_combo.addItem("🔴 Rare", "rare")
-        self.bucket_combo.addItem("⛔ Restricted", "restricted")
+        
+        self.bucket_combo.addItem("🟢 Aktif (Active)", "active")
+        self.bucket_combo.setItemData(1, "Uygulama şu an kullanılıyor veya çok yakın zamanda kullanıldı. Hiçbir kısıtlama uygulanmaz.", Qt.ToolTipRole)
+        
+        self.bucket_combo.addItem("🟡 Çalışma Grubu (Working Set)", "working_set")
+        self.bucket_combo.setItemData(2, "Uygulama sıkça kullanılıyor ancak şu an aktif değil. Hafif performans kısıtlamaları uygulanır.", Qt.ToolTipRole)
+        
+        self.bucket_combo.addItem("🟠 Sık Kullanılan (Frequent)", "frequent")
+        self.bucket_combo.setItemData(3, "Uygulama düzenli olarak kullanılıyor. Orta düzey kısıtlamalar uygulanır.", Qt.ToolTipRole)
+        
+        self.bucket_combo.addItem("🔴 Nadir (Rare)", "rare")
+        self.bucket_combo.setItemData(4, "Uygulama seyrek kullanılıyor. Ciddi pil tasarrufu kısıtlamaları uygulanır.", Qt.ToolTipRole)
+        
+        self.bucket_combo.addItem("⛔ Kısıtlı (Restricted)", "restricted")
+        self.bucket_combo.setItemData(5, "Uygulama neredeyse hiç kullanılmıyor. En ağır arka plan kısıtlamaları uygulanır.", Qt.ToolTipRole)
+        
         self.bucket_combo.currentIndexChanged.connect(self._on_bucket_changed)
         bucket_layout.addWidget(self.bucket_combo)
         
