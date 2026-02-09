@@ -24,7 +24,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QFont, QIcon
 
 from adbui.ui.main_window import MainWindow
 from adbui.utils.logger import setup_logging
@@ -60,6 +60,11 @@ def main():
     app.setApplicationName("ADBUI")
     app.setApplicationVersion("1.0.0")
     app.setOrganizationName("ADBUI")
+    
+    # İkonu ayarla
+    icon_path = PROJECT_ROOT / "logo.ico"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
     
     # Font ayarla
     font = QFont("Segoe UI", 10)

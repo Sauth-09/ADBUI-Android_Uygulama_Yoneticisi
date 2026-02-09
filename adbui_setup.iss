@@ -24,6 +24,7 @@ DefaultGroupName={#MyAppName}
 PrivilegesRequired=admin
 OutputDir=dist
 OutputBaseFilename=ADBUI_Setup_v{#MyAppVersion}
+SetupIconFile=logo.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -41,11 +42,12 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Ana EXE ve tüm alt klasörler/dosyalar dahil ediliyor
 Source: "dist\ADBUI_Portable\ADBUI.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\ADBUI_Portable\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "logo.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\logo.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\logo.ico"
 
 [Registry]
 ; Uygulamanın her zaman Yönetici Olarak çalışması için kayıt defteri ayarı
