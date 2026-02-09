@@ -67,39 +67,46 @@ class BackgroundAnalyzerThread(QThread):
                 break
             
             batch = packages_to_analyze[i:i + self.batch_size]
+            batch_names = [pkg.name for pkg in batch]
             
-            for pkg in batch:
-                if self._stop_requested:
-                    break
+            try:
+                # Toplu AI analizi yap (Tek istek = 10 paket)
+                results = self.analyzer.analyze_multiple(batch_names)
                 
-                try:
-                    # AI analizi yap
-                    analysis = self.analyzer.analyze(pkg.name)
+                if results:
+                    batch_success_count = 0
+                    for pkg in batch:
+                        if pkg.name in results:
+                            analysis = results[pkg.name]
+                            batch_success_count += 1
+                            analyzed += 1
+                            self.package_analyzed.emit(pkg.name, analysis)
                     
-                    if analysis:
-                        # Cache'e kaydet
-                        self.cache.set(pkg.name, analysis)
-                        analyzed += 1
-                        
-                        # Sinyal gönder
-                        self.package_analyzed.emit(pkg.name, analysis)
-                    
-                    # Progress güncelle
-                    self.progress_updated.emit(analyzed + skipped, total)
-                    
-                except Exception as e:
-                    logger.error(f"Analiz hatası ({pkg.name}): {e}")
-                    self.error_occurred.emit(str(e))
+                    # Sonuç boşsa ve durdurulmadıysa rate limit olabilir
+                    if batch_success_count == 0 and not self._stop_requested:
+                        logger.warning("Batch analizi boş döndü, rate limit olabilir. 30sn bekleniyor...")
+                        self.error_occurred.emit("AI Kotası aşıldı, 30sn bekleniyor...")
+                        time.sleep(30)
+                else:
+                    if not self._stop_requested:
+                         logger.warning("Batch analizi boş döndü. Rate limit olabilir.")
+                         self.error_occurred.emit("AI Kotası aşıldı, 30sn bekleniyor...")
+                         time.sleep(30)
+
+                # Progress güncelle
+                self.progress_updated.emit(analyzed + skipped, total)
                 
-                # API rate limit'e dikkat - her istek arasında kısa bekleme
-                time.sleep(0.5)
+                # Batch tamamlandı
+                self.batch_completed.emit(analyzed)
+                
+            except Exception as e:
+                logger.error(f"Batch analiz hatası: {e}")
+                self.error_occurred.emit(str(e))
             
-            # Batch tamamlandı
-            self.batch_completed.emit(analyzed)
-            
-            # Batch'ler arası bekleme
+            # Rate limit koruması (5 RPM = 12sn/istek)
+            # Güvenli olması için 15 saniye bekleyelim
             if not self._stop_requested and i + self.batch_size < len(packages_to_analyze):
-                time.sleep(1)
+                time.sleep(15)
         
         self.all_completed.emit(analyzed)
         logger.info(f"Arka plan analizi tamamlandı: {analyzed} yeni, {skipped} cache'den")

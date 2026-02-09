@@ -203,20 +203,135 @@ Kurallar:
             logger.error(f"JSON parse hatası: {e}\nİçerik: {content[:200]}")
             return None
     
+    
+    def analyze_multiple(self, package_names: list) -> Dict[str, AIAnalysis]:
+        """
+        Birden fazla paketi tek bir API isteği ile analiz et (Batch Prompt).
+        
+        Args:
+            package_names: Paket adları listesi
+            
+        Returns:
+            Dict[str, AIAnalysis]: Paket adı -> Analiz sonucu
+        """
+        # AI kullanılabilir değilse boş dön
+        if not self.is_available or not package_names:
+            return {}
+            
+        # Zaten cache'de olanları ele
+        results = {}
+        packages_to_ask = []
+        
+        if self.cache:
+            for pkg in package_names:
+                cached = self.cache.get(pkg)
+                if cached:
+                    results[pkg] = cached
+                    cached.is_cached = True
+                else:
+                    packages_to_ask.append(pkg)
+        else:
+            packages_to_ask = package_names
+            
+        if not packages_to_ask:
+            return results
+            
+        try:
+            # Batch prompt oluştur
+            pkg_list_str = "\n".join([f"- {pkg}" for pkg in packages_to_ask])
+            
+            prompt = f"""{self.SYSTEM_PROMPT}
+
+Aşağıdaki paketleri analiz et. Yanıtını bir JSON Listesi olarak ver.
+Örnek:
+[
+  {{ "package": "com.ornek.paket", "description": "...", "safety_score": 5, ... }},
+  {{ "package": "com.diger.paket", ... }}
+]
+
+Analiz edilecek paketler:
+{pkg_list_str}"""
+            
+            # Gemini'ye gönder
+            response = self._client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+            )
+            
+            content = response.text
+            
+            # JSON parse et
+            batch_results = self._parse_batch_response(content)
+            
+            # Cache'e kaydet ve results'a ekle
+            for pkg_name, analysis in batch_results.items():
+                if self.cache:
+                    self.cache.set(pkg_name, analysis)
+                results[pkg_name] = analysis
+                
+            return results
+            
+        except Exception as e:
+            logger.error(f"Toplu AI analizi başarısız: {e}")
+            return results
+
+    def _parse_batch_response(self, content: str) -> Dict[str, AIAnalysis]:
+        """Batch API yanıtını parse et."""
+        results = {}
+        try:
+            # JSON temizle
+            content = content.strip()
+            if '```' in content:
+                lines = content.split('\n')
+                json_lines = []
+                in_block = False
+                for line in lines:
+                    if line.strip().startswith('```'):
+                        in_block = not in_block
+                        continue
+                    if in_block:
+                        json_lines.append(line)
+                content = '\n'.join(json_lines)
+            
+            start = content.find('[')
+            end = content.rfind(']') + 1
+            if start != -1 and end > start:
+                content = content[start:end]
+            
+            data_list = json.loads(content)
+            
+            for item in data_list:
+                pkg_name = item.get('package')
+                if not pkg_name:
+                    continue
+                    
+                analysis = AIAnalysis(
+                    description=item.get('description', 'Açıklama yok'),
+                    safety_score=int(item.get('safety_score', 5)),
+                    safe_to_remove=bool(item.get('safe_to_remove', False)),
+                    removal_impact=item.get('removal_impact', 'Bilinmiyor'),
+                    alternative_action=item.get('alternative_action', 'Yok'),
+                    recommendation=item.get('recommendation', 'Dikkatli olun')
+                )
+                results[pkg_name] = analysis
+                
+            return results
+            
+        except Exception as e:
+            logger.error(f"Batch JSON parse hatası: {e}\nİçerik: {content[:200]}")
+            return {}
+
     def analyze_batch(
         self, 
         package_names: list, 
         progress_callback=None
     ) -> Dict[str, AIAnalysis]:
         """
-        Birden fazla paketi analiz et.
+        Birden fazla paketi analiz et (Eski metod).
         
         Args:
             package_names: Paket adları listesi
             progress_callback: İlerleme callback fonksiyonu
-            
-        Returns:
-            Dict[str, AIAnalysis]: Paket adı -> Analiz sonucu
         """
         results = {}
         total = len(package_names)
