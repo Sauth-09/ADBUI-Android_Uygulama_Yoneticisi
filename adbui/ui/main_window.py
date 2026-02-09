@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("ADBUI - Android Debloat ve Kontrol Aracı")
-        self.setMinimumSize(1200, 800)
+        self.setMinimumSize(1000, 700) # 1366x768 ekranlar için optimize edildi
         
         # Thread referansları
         self._loader_thread: Optional[PackageLoaderThread] = None
@@ -151,7 +151,7 @@ class MainWindow(QMainWindow):
         top_splitter.addWidget(self.ai_panel)
         
         # Splitter oranları
-        top_splitter.setSizes([300, 500, 400])
+        top_splitter.setSizes([280, 420, 300])
         
         main_splitter.addWidget(top_splitter)
         

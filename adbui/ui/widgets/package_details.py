@@ -41,13 +41,15 @@ class PackageDetailsWidget(QWidget):
         
         # Başlık
         title = QLabel("📋 Paket Detayları")
-        title.setStyleSheet("font-size: 16px; font-weight: bold; padding: 4px;")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; padding: 2px;")
         layout.addWidget(title)
         
         # Paket bilgi alanı
         self.info_group = QGroupBox("Bilgiler")
         info_layout = QGridLayout(self.info_group)
-        info_layout.setSpacing(8)
+        info_layout.setContentsMargins(8, 8, 8, 8)
+        info_layout.setVerticalSpacing(4)
+        info_layout.setHorizontalSpacing(8)
         
         # Paket adı
         info_layout.addWidget(QLabel("Paket:"), 0, 0)
@@ -76,6 +78,7 @@ class PackageDetailsWidget(QWidget):
         # İşlem butonları
         actions_group = QGroupBox("İşlemler")
         actions_layout = QVBoxLayout(actions_group)
+        actions_layout.setContentsMargins(8, 12, 8, 12)
         actions_layout.setSpacing(8)
         
         # Ana işlemler

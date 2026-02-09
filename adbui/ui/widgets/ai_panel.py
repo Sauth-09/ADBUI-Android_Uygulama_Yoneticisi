@@ -106,71 +106,76 @@ class AIPanelWidget(QWidget):
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(10)
         
-        # ===== SONUÇ KARTI (En üstte büyük) =====
+        # ===== SONUÇ KARTI (Daha Kompakt) =====
         self.result_card = QFrame()
         self.result_card.setStyleSheet("""
             QFrame {
                 background-color: #1e3a5f;
-                border-radius: 12px;
-                padding: 16px;
+                border-radius: 8px;
+                padding: 12px;
             }
         """)
         result_layout = QVBoxLayout(self.result_card)
-        result_layout.setSpacing(8)
+        result_layout.setSpacing(6)
+        result_layout.setContentsMargins(8, 8, 8, 8)
         
-        # Sonuç başlığı ve skor
-        result_header = QHBoxLayout()
+        # Üst kısım: İkon + Başlık + Skor
+        top_row = QHBoxLayout()
+        top_row.setSpacing(10)
         
         self.result_icon = QLabel("✅")
-        self.result_icon.setStyleSheet("font-size: 32px;")
-        result_header.addWidget(self.result_icon)
+        self.result_icon.setStyleSheet("font-size: 24px;")
+        top_row.addWidget(self.result_icon)
         
-        result_text_layout = QVBoxLayout()
-        result_text_layout.setSpacing(2)
+        title_layout = QVBoxLayout()
+        title_layout.setSpacing(0)
         
         self.result_title = QLabel("Kaldırılabilir")
-        self.result_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #28a745;")
-        result_text_layout.addWidget(self.result_title)
+        self.result_title.setStyleSheet("font-size: 15px; font-weight: bold; color: #28a745;")
+        title_layout.addWidget(self.result_title)
         
-        self.result_subtitle = QLabel("Bu uygulama güvenle kaldırılabilir")
-        self.result_subtitle.setStyleSheet("font-size: 12px; color: #aaa;")
-        result_text_layout.addWidget(self.result_subtitle)
+        self.result_subtitle = QLabel("Güvenli işlem")
+        self.result_subtitle.setStyleSheet("font-size: 11px; color: #ccc;")
+        title_layout.addWidget(self.result_subtitle)
         
-        result_header.addLayout(result_text_layout)
-        result_header.addStretch()
+        top_row.addLayout(title_layout)
+        top_row.addStretch()
         
-        # Güvenlik skoru
-        score_layout = QVBoxLayout()
-        score_layout.setAlignment(Qt.AlignCenter)
+        # Skor
+        score_container = QWidget()
+        score_container.setStyleSheet("background-color: rgba(0,0,0,0.2); border-radius: 6px;")
+        score_layout = QVBoxLayout(score_container)
+        score_layout.setContentsMargins(8, 4, 8, 4)
+        score_layout.setSpacing(0)
         
         self.safety_score_label = QLabel("10")
-        self.safety_score_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #28a745;")
         self.safety_score_label.setAlignment(Qt.AlignCenter)
+        self.safety_score_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #28a745;")
         score_layout.addWidget(self.safety_score_label)
         
-        score_text = QLabel("/ 10")
-        score_text.setStyleSheet("font-size: 11px; color: #888;")
-        score_text.setAlignment(Qt.AlignCenter)
-        score_layout.addWidget(score_text)
+        score_max = QLabel("/10")
+        score_max.setAlignment(Qt.AlignCenter)
+        score_max.setStyleSheet("font-size: 9px; color: #aaa;")
+        score_layout.addWidget(score_max)
         
-        result_header.addLayout(score_layout)
+        top_row.addWidget(score_container)
         
-        result_layout.addLayout(result_header)
+        result_layout.addLayout(top_row)
         
         # Güvenlik çubuğu
         self.safety_bar = QProgressBar()
         self.safety_bar.setRange(0, 10)
         self.safety_bar.setTextVisible(False)
-        self.safety_bar.setFixedHeight(8)
+        self.safety_bar.setFixedHeight(6)
         self.safety_bar.setStyleSheet("""
             QProgressBar {
                 border: none;
                 background-color: #2d2d44;
-                border-radius: 4px;
+                border-radius: 3px;
             }
             QProgressBar::chunk {
                 background-color: #28a745;
-                border-radius: 4px;
+                border-radius: 3px;
             }
         """)
         result_layout.addWidget(self.safety_bar)
@@ -314,50 +319,51 @@ class AIPanelWidget(QWidget):
         # Skora göre renk ve mesaj ayarla
         if score >= 7:
             color = "#28a745"
-            bg_color = "#1a2e1a"
-            border_color = "#28a745"
+            bg_color = "#1e3a5f"
+            border_color = "#28a745" # Sınır rengini skora göre değiştirmiyoruz, arka plan koyu kalsın
             icon = "✅"
-            title = "Güvenle Kaldırılabilir"
-            subtitle = "Bu uygulama sisteminizdeki diğer uygulamaları etkilemez"
+            title = "Kaldırılabilir"
+            subtitle = "Güvenli işlem"
         elif score >= 4:
             color = "#ffc107"
-            bg_color = "#2e2a1a"
+            bg_color = "#1e3a5f"
             border_color = "#ffc107"
             icon = "⚠️"
             title = "Dikkatli Olun"
-            subtitle = "Kaldırmadan önce etkilerini değerlendirin"
+            subtitle = "Riskleri değerlendirin"
         else:
             color = "#dc3545"
-            bg_color = "#2e1a1a"
+            bg_color = "#1e3a5f"
             border_color = "#dc3545"
             icon = "❌"
             title = "Kaldırmayın"
-            subtitle = "Bu uygulama sistem için kritik olabilir"
+            subtitle = "Sistem için kritik"
         
         self.result_icon.setText(icon)
         self.result_title.setText(title)
-        self.result_title.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {color};")
+        self.result_title.setStyleSheet(f"font-size: 15px; font-weight: bold; color: {color};")
         self.result_subtitle.setText(subtitle)
-        self.safety_score_label.setStyleSheet(f"font-size: 28px; font-weight: bold; color: {color};")
+        self.safety_score_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {color};")
         
-        self.result_card.setStyleSheet(f"""
-            QFrame {{
-                background-color: {bg_color};
-                border: 1px solid {border_color};
-                border-radius: 12px;
-                padding: 16px;
-            }}
+        # Arka plan rengini sabit tutuyoruz, sadece border değişebilir veya sabit kalabilir
+        # Kompakt görünümde çok fazla renk karmaşası olmasın
+        self.result_card.setStyleSheet("""
+            QFrame {
+                background-color: #1e3a5f;
+                border-radius: 8px;
+                padding: 12px;
+            }
         """)
         
         self.safety_bar.setStyleSheet(f"""
             QProgressBar {{
                 border: none;
                 background-color: #2d2d44;
-                border-radius: 4px;
+                border-radius: 3px;
             }}
             QProgressBar::chunk {{
                 background-color: {color};
-                border-radius: 4px;
+                border-radius: 3px;
             }}
         """)
         
@@ -373,13 +379,15 @@ class AIPanelWidget(QWidget):
         # Öneri
         self.recommendation_label.setText(analysis.recommendation)
         
-        # Öneri kutusunun rengini ayarla
+        # Öneri kutusunun rengini ayarla (Border kullanarak vurgula)
+        rec_bg = "#1a2e1a" if score >= 7 else ("#2e2a1a" if score >= 4 else "#2e1a1a")
+        
         self.recommendation_frame.setStyleSheet(f"""
             QFrame {{
-                background-color: {bg_color};
-                border: 1px solid {border_color};
+                background-color: {rec_bg};
+                border: 1px solid {color};
                 border-radius: 8px;
-                padding: 12px;
+                padding: 10px;
             }}
         """)
     
