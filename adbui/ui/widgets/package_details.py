@@ -299,12 +299,15 @@ class PackageDetailsWidget(QWidget):
             
     def update_advanced_info(self, details: dict):
         """Gelişmiş paket bilgilerini güncelle."""
-        if not details:
-            self.bg_label.setText("❓ Bilgi Yok")
-            self.wakelock_label.setText("❓ Bilgi Yok")
-            self.standby_label.setText("❓ Bilgi Yok")
-            return
-            
-        self.bg_label.setText(details.get("run_in_background", "❓ Bilinmiyor"))
-        self.wakelock_label.setText(details.get("wake_lock", "❓ Bilinmiyor"))
-        self.standby_label.setText(details.get("standby_bucket", "❓ Bilinmiyor"))
+        try:
+            if not details:
+                self.bg_label.setText("❓ Bilgi Yok")
+                self.wakelock_label.setText("❓ Bilgi Yok")
+                self.standby_label.setText("❓ Bilgi Yok")
+                return
+                
+            self.bg_label.setText(str(details.get("run_in_background", "❓ Bilinmiyor")))
+            self.wakelock_label.setText(str(details.get("wake_lock", "❓ Bilinmiyor")))
+            self.standby_label.setText(str(details.get("standby_bucket", "❓ Bilinmiyor")))
+        except Exception as e:
+            logger.error(f"UI Güncelleme Hatası (Advanced Info): {e}")

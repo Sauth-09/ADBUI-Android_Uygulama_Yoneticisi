@@ -36,6 +36,17 @@ def main():
     # Log sistemini başlat
     setup_logging()
     
+    # Global Exception Handler (Kritik hataları yakala)
+    def excepthook(exc_type, exc_value, exc_traceback):
+        import logging
+        logging.getLogger("root").critical(
+            "Beklenmeyen Hata (Uncaught Exception):", 
+            exc_info=(exc_type, exc_value, exc_traceback)
+        )
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+    
+    sys.excepthook = excepthook
+    
     # Konfigürasyonu yükle
     config = get_config()
     
