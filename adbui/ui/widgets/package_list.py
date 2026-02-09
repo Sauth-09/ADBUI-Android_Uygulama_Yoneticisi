@@ -5,11 +5,13 @@ Sol panel - Paket listesi, arama ve filtreleme.
 """
 
 from typing import List, Optional
+import webbrowser
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit,
     QListWidget, QListWidgetItem, QCheckBox, QLabel,
-    QFrame
+    QFrame, QMenu, QApplication
 )
+from PySide6.QtGui import QAction, QCursor
 from PySide6.QtCore import Qt, Signal
 import logging
 
@@ -78,6 +80,8 @@ class PackageListWidget(QWidget):
         
         # Liste
         self.list_widget = QListWidget()
+        self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self._show_context_menu)
         self.list_widget.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self.list_widget)
         
@@ -157,6 +161,30 @@ class PackageListWidget(QWidget):
         if package:
             self.package_selected.emit(package)
     
+    def _show_context_menu(self, pos):
+        """Sağ tık menüsü göster."""
+        item = self.list_widget.itemAt(pos)
+        if not item:
+            return
+            
+        package = item.data(Qt.UserRole)
+        if not package:
+            return
+            
+        menu = QMenu(self)
+        
+        # Kopyala
+        copy_action = QAction("📋 Paket Adını Kopyala", self)
+        copy_action.triggered.connect(lambda: QApplication.clipboard().setText(package.name))
+        menu.addAction(copy_action)
+        
+        # Ara
+        search_action = QAction("🔍 Google'da Ara", self)
+        search_action.triggered.connect(lambda: webbrowser.open(f"https://www.google.com/search?q={package.name} android package"))
+        menu.addAction(search_action)
+        
+        menu.exec(QCursor.pos())
+
     def get_selected_package(self) -> Optional[Package]:
         """Seçili paketi al."""
         item = self.list_widget.currentItem()

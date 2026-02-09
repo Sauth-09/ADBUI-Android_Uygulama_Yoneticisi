@@ -55,6 +55,7 @@ class PackageDetailsWidget(QWidget):
         info_layout.addWidget(QLabel("Paket:"), 0, 0)
         self.name_label = QLabel("-")
         self.name_label.setWordWrap(True)
+        self.name_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.name_label.setStyleSheet("font-weight: bold; color: #667eea;")
         info_layout.addWidget(self.name_label, 0, 1)
         
