@@ -22,13 +22,12 @@ class AICache:
     SQLite veritabanı kullanarak paket analizlerini saklar.
     """
     
-    def __init__(self, cache_dir: Optional[str] = None, ttl_days: int = 30):
+    def __init__(self, cache_dir: Optional[str] = None):
         """
         Cache'i başlat.
         
         Args:
             cache_dir: Cache dizini (None ise varsayılan kullanılır)
-            ttl_days: Cache geçerlilik süresi (gün)
         """
         if cache_dir is None:
             cache_dir = Path.home() / ".adbui" / "cache"
@@ -37,7 +36,6 @@ class AICache:
         
         cache_dir.mkdir(parents=True, exist_ok=True)
         self.db_path = cache_dir / "ai_cache.db"
-        self.ttl_days = ttl_days
         
         self._init_db()
     
@@ -86,13 +84,6 @@ class AICache:
                 return None
             
             analysis_json, created_at = row
-            
-            # TTL kontrolü
-            created = datetime.fromisoformat(created_at)
-            if datetime.now() - created > timedelta(days=self.ttl_days):
-                # Süresi dolmuş, sil
-                self.delete(package_name)
-                return None
             
             # Erişim zamanını güncelle
             conn.execute(
@@ -177,23 +168,6 @@ class AICache:
         except Exception as e:
             logger.error(f"Cache temizleme hatası: {e}")
             return False
-    
-    def cleanup_expired(self) -> int:
-        """Süresi dolmuş kayıtları temizle."""
-        cutoff = datetime.now() - timedelta(days=self.ttl_days)
-        
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute(
-                "DELETE FROM analysis_cache WHERE created_at < ?",
-                (cutoff.isoformat(),)
-            )
-            deleted = cursor.rowcount
-            conn.commit()
-        
-        if deleted > 0:
-            logger.info(f"{deleted} süresi dolmuş cache kaydı silindi")
-        
-        return deleted
     
     def get_stats(self) -> dict:
         """Cache istatistiklerini al."""
