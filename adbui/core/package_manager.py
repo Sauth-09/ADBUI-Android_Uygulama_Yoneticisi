@@ -383,14 +383,15 @@ class PackageManager:
             if res.success:
                 bucket_code = res.stdout.strip()
                 bucket_map = {
+                    "5": "💎 Muaf (Exempted)",
                     "10": "🟢 Aktif (Active)",
                     "20": "🟡 Çalışma Grubu (Working)",
                     "30": "🟠 Sık (Frequent)",
                     "40": "🔴 Nadir (Rare)",
                     "45": "⛔ Kısıtlı (Restricted)",
-                    "50": "Muaf (Exempt)"
+                    "50": "❄️ Hiç (Never)"
                 }
-                details["standby_bucket"] = bucket_map.get(bucket_code, bucket_code)
+                details["standby_bucket"] = bucket_map.get(bucket_code, f"Bilinmiyor ({bucket_code})")
             
             # 4. Versiyon ve Yükleme Zamanı (Dumpsys)
             res = self.adb.shell(f"dumpsys package {package_name}", device_serial=self.device_serial)
