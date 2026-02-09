@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
     """
     
     refresh_finished = Signal(object)
+    advanced_info_loaded = Signal(dict)
     
     def __init__(self):
         super().__init__()
@@ -87,6 +88,9 @@ class MainWindow(QMainWindow):
         self._setup_toolbar()
         self._setup_statusbar()
         self._load_stylesheet()
+        
+        # Sinyal bağlantıları (UI Bileşenleri oluşturulduktan sonra)
+        self.advanced_info_loaded.connect(self.package_details.update_advanced_info)
         
         # Log emitter'a bağlan
         log_emitter.connect(self._on_log_message)
@@ -596,6 +600,19 @@ class MainWindow(QMainWindow):
         self._selected_package = package
         self.package_details.set_package(package)
         self.ai_panel.current_package = package.name
+        
+        # Gelişmiş detayları arka planda yükle
+        self.package_details.update_advanced_info({}) # Temizle
+        
+        def load_details():
+            try:
+                if self.package_manager:
+                    details = self.package_manager.get_advanced_details(package.name)
+                    self.advanced_info_loaded.emit(details)
+            except Exception as e:
+                logger.error(f"Detay yükleme hatası: {e}")
+        
+        threading.Thread(target=load_details, daemon=True).start()
         
         # Önce cache'e bak
         if self.ai_cache:

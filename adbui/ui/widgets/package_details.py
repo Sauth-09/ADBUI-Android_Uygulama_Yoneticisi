@@ -74,6 +74,21 @@ class PackageDetailsWidget(QWidget):
         self.vendor_label = QLabel("-")
         info_layout.addWidget(self.vendor_label, 3, 1)
         
+        # Arka Plan (AppOps)
+        info_layout.addWidget(QLabel("Arka Plan:"), 4, 0)
+        self.bg_label = QLabel("-")
+        info_layout.addWidget(self.bg_label, 4, 1)
+        
+        # Uyanık Kalma (WakeLock)
+        info_layout.addWidget(QLabel("Uyanık Kalma:"), 5, 0)
+        self.wakelock_label = QLabel("-")
+        info_layout.addWidget(self.wakelock_label, 5, 1)
+        
+        # Bekleme Modu (Standby)
+        info_layout.addWidget(QLabel("Bekleme Modu:"), 6, 0)
+        self.standby_label = QLabel("-")
+        info_layout.addWidget(self.standby_label, 6, 1)
+        
         layout.addWidget(self.info_group)
         
         # İşlem butonları
@@ -232,6 +247,10 @@ class PackageDetailsWidget(QWidget):
         self.category_label.setText("-")
         self.status_label.setText("-")
         self.vendor_label.setText("-")
+        
+        self.bg_label.setText("-")
+        self.wakelock_label.setText("-")
+        self.standby_label.setText("-")
         self.warning_label.hide()
         self._set_actions_enabled(False)
     
@@ -277,3 +296,15 @@ class PackageDetailsWidget(QWidget):
         if value and self._current_package:
             self.action_requested.emit(f"bucket:{value}", self._current_package)
             self.bucket_combo.setCurrentIndex(0)
+            
+    def update_advanced_info(self, details: dict):
+        """Gelişmiş paket bilgilerini güncelle."""
+        if not details:
+            self.bg_label.setText("❓ Bilgi Yok")
+            self.wakelock_label.setText("❓ Bilgi Yok")
+            self.standby_label.setText("❓ Bilgi Yok")
+            return
+            
+        self.bg_label.setText(details.get("run_in_background", "❓ Bilinmiyor"))
+        self.wakelock_label.setText(details.get("wake_lock", "❓ Bilinmiyor"))
+        self.standby_label.setText(details.get("standby_bucket", "❓ Bilinmiyor"))

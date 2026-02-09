@@ -346,3 +346,51 @@ class PackageManager:
             info['version_code'] = int(code_match.group(1))
         
         return info
+    
+    def get_advanced_details(self, package_name: str) -> Dict[str, str]:
+        """
+        Paket hakkında gelişmiş detayları al (AppOps, Standby, WakeLock).
+        """
+        details = {
+            "run_in_background": "Yükleniyor...",
+            "wake_lock": "Yükleniyor...",
+            "standby_bucket": "Yükleniyor..."
+        }
+        
+        try:
+            # 1. RUN_IN_BACKGROUND
+            res = self.adb.shell(f"cmd appops get {package_name} RUN_IN_BACKGROUND", device_serial=self.device_serial)
+            if res.success:
+                stdout = res.stdout.lower()
+                if "allow" in stdout: details["run_in_background"] = "✅ İzin Verildi"
+                elif "ignore" in stdout: details["run_in_background"] = "⚠️ Yoksay (Ignore)"
+                elif "deny" in stdout: details["run_in_background"] = "⛔ Engellendi"
+                else: details["run_in_background"] = "❓ Bilinmiyor"
+            
+            # 2. WAKE_LOCK
+            res = self.adb.shell(f"cmd appops get {package_name} WAKE_LOCK", device_serial=self.device_serial)
+            if res.success:
+                stdout = res.stdout.lower()
+                if "allow" in stdout: details["wake_lock"] = "✅ İzin Verildi"
+                elif "ignore" in stdout: details["wake_lock"] = "⚠️ Yoksay (Ignore)"
+                elif "deny" in stdout: details["wake_lock"] = "⛔ Engellendi"
+                else: details["wake_lock"] = "❓ Bilinmiyor"
+                
+            # 3. STANDBY BUCKET
+            res = self.adb.shell(f"am get-standby-bucket {package_name}", device_serial=self.device_serial)
+            if res.success:
+                bucket_code = res.stdout.strip()
+                bucket_map = {
+                    "10": "🟢 Aktif (Active)",
+                    "20": "🟡 Çalışma Grubu (Working)",
+                    "30": "🟠 Sık (Frequent)",
+                    "40": "🔴 Nadir (Rare)",
+                    "45": "⛔ Kısıtlı (Restricted)",
+                    "50": "Muaf (Exempt)"
+                }
+                details["standby_bucket"] = bucket_map.get(bucket_code, bucket_code)
+                
+        except Exception as e:
+            logger.error(f"Gelişmiş detay hatası: {e}")
+            
+        return details
