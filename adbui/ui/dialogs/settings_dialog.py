@@ -59,9 +59,11 @@ class SettingsDialog(QDialog):
         
         # Model seçici (dropdown)
         self.model_combo = QComboBox()
-        self.model_combo.addItem("gemini-2.5-flash (Önerilen)", "gemini-2.5-flash")
+        self.model_combo.addItem("gemini-flash-latest (Varsayılan)", "gemini-flash-latest")
+        self.model_combo.addItem("gemini-3-pro-preview (Yeni)", "gemini-3-pro-preview")
+        self.model_combo.addItem("gemini-3-flash-preview (Yeni)", "gemini-3-flash-preview")
+        self.model_combo.addItem("gemini-2.5-flash (Stabil)", "gemini-2.5-flash")
         self.model_combo.addItem("gemini-2.5-flash-lite (Hızlı)", "gemini-2.5-flash-lite")
-        self.model_combo.addItem("gemini-flash-latest (En Güncel)", "gemini-flash-latest")
         ai_form.addRow("Model:", self.model_combo)
         
         self.ai_enabled = QCheckBox("AI özelliklerini etkinleştir")

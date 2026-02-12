@@ -17,13 +17,16 @@ GEMINI_AVAILABLE = None  # İlk kullanımda kontrol edilecek
 
 
 # Kullanılabilir modeller
+# Kullanılabilir modeller
 AVAILABLE_MODELS = [
     "gemini-2.5-flash",        # En yeni, dengeli
     "gemini-2.5-flash-lite",   # Hafif ve hızlı
-    "gemini-flash-latest",     # En güncel flash
+    "gemini-flash-latest",     # En güncel flash (Varsayılan)
+    "gemini-3-pro-preview",    # Yeni Pro Preview
+    "gemini-3-flash-preview",  # Yeni Flash Preview
 ]
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "gemini-flash-latest"
 
 
 @dataclass
