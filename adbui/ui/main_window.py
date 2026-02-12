@@ -10,7 +10,8 @@ from typing import Optional, List
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QSplitter, QToolBar, QStatusBar, QComboBox,
-    QPushButton, QLabel, QMessageBox, QApplication
+    QPushButton, QLabel, QMessageBox, QApplication,
+    QTabWidget
 )
 from PySide6.QtCore import Qt, Signal, Slot, QThread, QTimer
 from PySide6.QtGui import QAction, QIcon
@@ -20,12 +21,14 @@ from .widgets.package_list import PackageListWidget
 from .widgets.package_details import PackageDetailsWidget
 from .widgets.ai_panel import AIPanelWidget
 from .widgets.log_panel import LogPanelWidget
+from .widgets.known_apps_widget import KnownAppsWidget
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.permissions_dialog import PermissionsDialog
 
 from ..core.adb_service import ADBService
 from ..core.device_manager import DeviceManager, Device
 from ..core.package_manager import PackageManager, Package, PackageCategory
+from ..core.known_apps import KnownAppsManager
 from ..ai.analyzer import PackageAnalyzer
 from ..ai.cache import AICache
 from ..ai.background_analyzer import BackgroundAnalyzerThread
@@ -120,6 +123,7 @@ class MainWindow(QMainWindow):
             self.adb_service = ADBService()
             self.device_manager = DeviceManager(self.adb_service)
             self.package_manager = PackageManager(self.adb_service)
+            self.known_apps_manager = KnownAppsManager()
             
             # AI servisi
             self.ai_cache = AICache() if config.get('cache_enabled', True) else AICache()  # Her zaman cache kullan
@@ -158,10 +162,25 @@ class MainWindow(QMainWindow):
         # Üst bölüm splitter (yatay - sol/orta/sağ)
         top_splitter = QSplitter(Qt.Horizontal)
         
-        # Sol panel - Paket listesi
+        # SOL PANEL: Tab Widget (Tümü / Bilinenler)
+        left_panel_widget = QWidget()
+        left_layout = QVBoxLayout(left_panel_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.tabs = QTabWidget()
+        
+        # Tab 1: Tüm Paketler
         self.package_list = PackageListWidget()
         self.package_list.package_selected.connect(self._on_package_selected)
-        top_splitter.addWidget(self.package_list)
+        self.tabs.addTab(self.package_list, "Tüm Paketler")
+        
+        # Tab 2: Bilinen Uygulamalar
+        self.known_apps_widget = KnownAppsWidget(self.known_apps_manager)
+        self.known_apps_widget.action_requested.connect(self._on_known_app_action)
+        self.tabs.addTab(self.known_apps_widget, "Bilinen Uygulamalar")
+        
+        left_layout.addWidget(self.tabs)
+        top_splitter.addWidget(left_panel_widget)
         
         # Orta panel - Paket detayları
         self.package_details = PackageDetailsWidget()
@@ -581,12 +600,37 @@ class MainWindow(QMainWindow):
                     f"Lütfen cihazınızda USB hata ayıklamayı etkinleştirin "
                     f"ve bu bilgisayarı yetkilendirin."
                 )
+
+    def _on_known_app_action(self, action: str, package_name: str):
+        """Bilinen uygulamalar panelinden gelen işlem isteği."""
+        # Paket isminden Package objesini bul veya dummy oluştur
+        # Uninstall için isim yeterli ama _confirm_and_uninstall Package objesi istiyor.
+        # Hemen yüklü paketlerden bulmaya çalışalım.
+        
+        if not self._current_device:
+             QMessageBox.warning(self, "Hata", "Lütfen önce bir cihaz seçin.")
+             return
+             
+        found_pkg = None
+        for p in self._packages:
+            if p.name == package_name:
+                found_pkg = p
+                break
+        
+        if found_pkg:
+            if action == 'uninstall':
+                self._confirm_and_uninstall(found_pkg)
+            elif action == 'disable':
+                self._disable_package(found_pkg)
+        else:
+            QMessageBox.warning(self, "Bulunamadı", f"Paket yüklü değil: {package_name}")
     
     @Slot(list)
     def _on_packages_loaded(self, packages: List[Package]):
         """Paketler yüklendi."""
         self._packages = packages
         self.package_list.set_packages(packages)
+        self.known_apps_widget.set_installed_packages(packages)
         
         count = len(packages)
         self.package_count_label.setText(f"{count} paket")
