@@ -25,6 +25,7 @@ from .widgets.known_apps_widget import KnownAppsWidget
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.permissions_dialog import PermissionsDialog
 from .dialogs.help_dialog import HelpDialog
+from .dialogs.extra_features_dialog import ExtraFeaturesDialog
 
 from ..core.adb_service import ADBService
 from ..core.device_manager import DeviceManager, Device
@@ -259,6 +260,15 @@ class MainWindow(QMainWindow):
         settings_action = QAction("⚙️ Ayarlar", self)
         settings_action.triggered.connect(self._show_settings)
         toolbar.addAction(settings_action)
+        
+        # Diğer Özellikler (Extra Features)
+        extra_features_action = QAction("🛠️ Diğer", self)
+        extra_features_action.setToolTip("Ekstra özellikler (DNS vb.)")
+        extra_features_action.setShortcut("F2")
+        extra_features_action.triggered.connect(self._show_extra_features)
+        toolbar.addAction(extra_features_action)
+        
+        toolbar.addSeparator()
         
         # Yardım
         help_action = QAction("❓ Yardım", self)
@@ -980,6 +990,16 @@ class MainWindow(QMainWindow):
     def _show_help(self):
         """Yardım diyaoğunu göster."""
         dialog = HelpDialog(self)
+        dialog.exec()
+
+    @Slot()
+    def _show_extra_features(self):
+        """Diğer özellikler diyaloğunu göster."""
+        if not self._current_device:
+            QMessageBox.warning(self, "Uyarı", "Lütfen önce bir cihaz seçin.")
+            return
+
+        dialog = ExtraFeaturesDialog(self.adb_service, self._current_device.serial, self)
         dialog.exec()
 
     def closeEvent(self, event):

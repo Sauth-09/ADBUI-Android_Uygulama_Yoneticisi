@@ -150,3 +150,37 @@ class ADBService:
     def get_devices_raw(self) -> ADBResult:
         """Bağlı cihazların ham listesini al."""
         return self.execute(["devices", "-l"])
+
+    # --- Private DNS Methods ---
+    
+    def get_private_dns(self, device_serial: str) -> dict:
+        """
+        Cihazın Private DNS ayarlarını al.
+        Returns:
+            dict: {'mode': str, 'hostname': str}
+        """
+        mode_res = self.shell("settings get global private_dns_mode", device_serial)
+        specifier_res = self.shell("settings get global private_dns_specifier", device_serial)
+        
+        return {
+            "mode": mode_res.stdout.strip() if mode_res.success else "unknown",
+            "hostname": specifier_res.stdout.strip() if specifier_res.success else ""
+        }
+
+    def set_private_dns(self, device_serial: str, hostname: str) -> bool:
+        """
+        Private DNS'i belirli bir sunucuya ayarla.
+        """
+        # 1. Hostname'i ayarla
+        res1 = self.shell(f"settings put global private_dns_specifier {hostname}", device_serial)
+        if not res1.success:
+            return False
+            
+        # 2. Modu 'hostname' olarak ayarla
+        res2 = self.shell("settings put global private_dns_mode hostname", device_serial)
+        return res2.success
+
+    def disable_private_dns(self, device_serial: str) -> bool:
+        """Private DNS'i kapat (Otomatik değil, tamamen kapalı veya off)."""
+        # Genellikle off yapmak yeterlidir, bazı cihazlarda 'opportunistic' (otomatik) varsayılan olabilir.
+        return self.shell("settings put global private_dns_mode off", device_serial).success
