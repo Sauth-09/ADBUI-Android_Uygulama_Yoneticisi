@@ -1,0 +1,58 @@
+[
+    {
+        "package": "com.miui.daemon",
+        "name": "MIUI Daemon",
+        "description": "Xiaomi veri toplama ve analiz servisi (Telemetry).",
+        "risk": "Safe",
+        "recommendation": "Remove"
+    },
+    {
+        "package": "com.miui.analytics",
+        "name": "MIUI Analytics",
+        "description": "Reklam ve analiz servisi.",
+        "risk": "Safe",
+        "recommendation": "Remove"
+    },
+    {
+        "package": "com.miui.msa.global",
+        "name": "MSA (System Ads)",
+        "description": "MIUI Sistem reklamlarını gösteren servis.",
+        "risk": "Safe",
+        "recommendation": "Remove"
+    },
+    {
+        "package": "com.google.android.apps.tachyon",
+        "name": "Google Duo / Meet",
+        "description": "Görüntülü görüşme uygulaması.",
+        "risk": "Safe",
+        "recommendation": "Disable"
+    },
+    {
+        "package": "com.facebook.katana",
+        "name": "Facebook",
+        "description": "Facebook ana uygulaması.",
+        "risk": "Safe",
+        "recommendation": "Remove"
+    },
+    {
+        "package": "com.facebook.system",
+        "name": "Facebook App Installer",
+        "description": "Facebook sistem güncelleyicisi.",
+        "risk": "Safe",
+        "recommendation": "Remove"
+    },
+    {
+        "package": "com.facebook.appmanager",
+        "name": "Facebook App Manager",
+        "description": "Facebook uygulamalarını yöneten servis.",
+        "risk": "Safe",
+        "recommendation": "Remove"
+    },
+    {
+        "package": "com.google.android.videos",
+        "name": "Google TV",
+        "description": "Google film ve dizi kiralama servisi.",
+        "risk": "Safe",
+        "recommendation": "Remove"
+    }
+]
