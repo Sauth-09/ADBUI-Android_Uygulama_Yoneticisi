@@ -5,7 +5,34 @@ import subprocess
 import sys
 from pathlib import Path
 
+def clean():
+    """Derleme kalıntılarını temizle."""
+    print("🧹 Temizlik yapılıyor...")
+    
+    dirs_to_remove = ["build", "dist", "build_dist"]
+    files_to_remove = ["*.spec"]
+    
+    # Klasörleri sil
+    for d in dirs_to_remove:
+        path = Path(d)
+        if path.exists():
+            try:
+                shutil.rmtree(path)
+                print(f"   - Silindi: {d}")
+            except Exception as e:
+                print(f"   ! Silinemedi {d}: {e}")
+
+    # Dosyaları sil
+    for pattern in files_to_remove:
+        for f in Path(".").glob(pattern):
+            try:
+                f.unlink()
+                print(f"   - Silindi: {f}")
+            except Exception as e:
+                print(f"   ! Silinemedi {f}: {e}")
+
 def build():
+    clean()
     print("🚀 ADBUI Derleme İşlemi Başlatılıyor...")
     
     # Bağımlılıkları kontrol et
@@ -17,8 +44,6 @@ def build():
 
     # 1. Ortamı Hazırla
     build_dir = Path("build_dist")
-    if build_dir.exists():
-        shutil.rmtree(build_dir)
     build_dir.mkdir()
 
     # 2. PyInstaller SPEC Dosyası İçeriği
