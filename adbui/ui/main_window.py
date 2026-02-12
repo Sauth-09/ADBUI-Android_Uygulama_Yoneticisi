@@ -284,6 +284,22 @@ class MainWindow(QMainWindow):
         
         QToolBar QLabel {
             color: #a0a0a0;
+            background: transparent;
+        }
+        
+        /* ToolBar specific fixes */
+        QToolBar QToolButton {
+            background-color: #2d2d44;
+            border: 1px solid #4a4e69;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        QToolBar QToolButton:hover {
+            background-color: #4a4e69;
+            border-color: #6c757d;
         }
         
         QPushButton {
@@ -291,7 +307,7 @@ class MainWindow(QMainWindow):
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: bold;
         }
         
@@ -332,7 +348,7 @@ class MainWindow(QMainWindow):
         QComboBox {
             background-color: #2d2d44;
             border: 1px solid #4a4e69;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 6px 12px;
             min-width: 150px;
         }
@@ -355,7 +371,7 @@ class MainWindow(QMainWindow):
         QLineEdit {
             background-color: #2d2d44;
             border: 1px solid #4a4e69;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 8px 12px;
         }
         
@@ -372,7 +388,7 @@ class MainWindow(QMainWindow):
         
         QListWidget::item {
             padding: 8px 12px;
-            border-radius: 4px;
+            border-radius: 6px;
             margin: 2px 0;
         }
         
@@ -450,8 +466,40 @@ class MainWindow(QMainWindow):
         QCheckBox::indicator {
             width: 18px;
             height: 18px;
-            border-radius: 4px;
+            border-radius: 6px;
             border: 2px solid #4a4e69;
+        }
+        
+        /* Tab Widget Styling */
+        QTabWidget::pane {
+            border: 1px solid #2d2d44;
+            border-radius: 8px;
+            background-color: #1a1a2e;
+        }
+        
+        QTabWidget::tab-bar {
+            left: 5px;
+        }
+        
+        QTabBar::tab {
+            background-color: #0f0f23;
+            color: #888888;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            padding: 8px 16px;
+            margin-right: 4px;
+            font-weight: bold;
+        }
+        
+        QTabBar::tab:selected {
+            background-color: #2d2d44; /* Active tab matches content bg */
+            color: #ffffff;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        QTabBar::tab:hover {
+            background-color: #2d2d44;
+            color: #e8e8e8;
         }
         
         QCheckBox::indicator:checked {

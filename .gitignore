@@ -84,3 +84,4 @@ Thumbs.db
 
 # Logs
 logs/
+known_apps_cache.json
