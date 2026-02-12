@@ -12,13 +12,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Google GenAI paketi (yeni SDK)
-try:
-    from google import genai
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
-    logger.warning("google-genai paketi yüklü değil. AI özellikleri devre dışı.")
+# Google GenAI paketi (Lazy import yapılacak)
+GEMINI_AVAILABLE = None  # İlk kullanımda kontrol edilecek
 
 
 # Kullanılabilir modeller
@@ -88,14 +83,24 @@ Kurallar:
         self.cache = cache_manager
         self._client = None
         
-        if api_key and GEMINI_AVAILABLE:
+        if api_key:
             self._configure_gemini(api_key)
     
     def _configure_gemini(self, api_key: str):
         """Gemini API'yi yapılandır."""
+        global GEMINI_AVAILABLE
+        
         try:
+            # Lazy import
+            from google import genai
+            GEMINI_AVAILABLE = True
+            
             self._client = genai.Client(api_key=api_key)
             logger.info(f"Gemini API yapılandırıldı: {self.model_name}")
+        except ImportError:
+            GEMINI_AVAILABLE = False
+            logger.warning("google-genai paketi yüklü değil. AI özellikleri devre dışı.")
+            self._client = None
         except Exception as e:
             logger.error(f"Gemini yapılandırma hatası: {e}")
             self._client = None
@@ -108,7 +113,8 @@ Kurallar:
     def set_api_key(self, api_key: str):
         """API anahtarını ayarla."""
         self.api_key = api_key
-        if GEMINI_AVAILABLE:
+        # API key varsa yapılandırmayı dene (bu modülü de yükler)
+        if api_key:
             self._configure_gemini(api_key)
     
     def set_model(self, model: str):

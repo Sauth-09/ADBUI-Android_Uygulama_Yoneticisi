@@ -24,6 +24,7 @@ from .widgets.log_panel import LogPanelWidget
 from .widgets.known_apps_widget import KnownAppsWidget
 from .dialogs.settings_dialog import SettingsDialog
 from .dialogs.permissions_dialog import PermissionsDialog
+from .dialogs.help_dialog import HelpDialog
 
 from ..core.adb_service import ADBService
 from ..core.device_manager import DeviceManager, Device
@@ -34,6 +35,7 @@ from ..ai.cache import AICache
 from ..ai.background_analyzer import BackgroundAnalyzerThread
 from ..utils.config import get_config
 from ..utils.logger import log_emitter
+from ..utils.resource import get_resource_path
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,17 @@ class MainWindow(QMainWindow):
         # Sinyali slot'a bağla (Otomatik QueuedConnection)
         self.log_received.connect(self._on_log_message)
 
+    @property
+    def ai_analyzer(self):
+        """Lazy load AI analyzer."""
+        if self._ai_analyzer_instance is None:
+            config = get_config()
+            self._ai_analyzer_instance = PackageAnalyzer(
+                api_key=config.get('openai_api_key'),
+                cache_manager=self.ai_cache
+            )
+        return self._ai_analyzer_instance
+    
     def _init_services(self):
         """Servisleri başlat."""
         config = get_config()
@@ -125,12 +138,9 @@ class MainWindow(QMainWindow):
             self.package_manager = PackageManager(self.adb_service)
             self.known_apps_manager = KnownAppsManager()
             
-            # AI servisi
-            self.ai_cache = AICache() if config.get('cache_enabled', True) else AICache()  # Her zaman cache kullan
-            self.ai_analyzer = PackageAnalyzer(
-                api_key=config.get('openai_api_key'),
-                cache_manager=self.ai_cache
-            )
+            # AI servisi (Lazy loading için placeholder)
+            self.ai_cache = AICache() if config.get('cache_enabled', True) else AICache()
+            self._ai_analyzer_instance = None
             
             self._current_device: Optional[Device] = None
             self._packages: List[Package] = []
@@ -249,6 +259,12 @@ class MainWindow(QMainWindow):
         settings_action = QAction("⚙️ Ayarlar", self)
         settings_action.triggered.connect(self._show_settings)
         toolbar.addAction(settings_action)
+        
+        # Yardım
+        help_action = QAction("❓ Yardım", self)
+        help_action.setShortcut("F1")
+        help_action.triggered.connect(self._show_help)
+        toolbar.addAction(help_action)
     
     def _setup_statusbar(self):
         """Durum çubuğu oluştur."""
@@ -263,225 +279,231 @@ class MainWindow(QMainWindow):
     
     def _load_stylesheet(self):
         """Koyu tema stilini yükle."""
-        style = """
-        QMainWindow {
-            background-color: #1a1a2e;
-        }
         
-        QWidget {
+        check_icon_path = get_resource_path("adbui/assets/check.svg")
+        
+        # Windows yol ayırıcılarını düzelt (Qt stil dosyası için forward slash gerekli)
+        check_icon_path = check_icon_path.replace("\\", "/")
+        
+        style = f"""
+        QMainWindow {{
+            background-color: #1a1a2e;
+        }}
+        
+        QWidget {{
             background-color: #16213e;
             color: #e8e8e8;
             font-family: 'Segoe UI', Arial, sans-serif;
             font-size: 13px;
-        }
+        }}
         
-        QToolBar {
+        QToolBar {{
             background-color: #0f0f23;
             border: none;
             padding: 8px;
             spacing: 10px;
-        }
+        }}
         
-        QToolBar QLabel {
+        QToolBar QLabel {{
             color: #a0a0a0;
             background: transparent;
-        }
+        }}
         
         /* ToolBar specific fixes */
-        QToolBar QToolButton {
+        QToolBar QToolButton {{
             background-color: #2d2d44;
             border: 1px solid #4a4e69;
             border-radius: 8px;
             padding: 6px 12px;
             font-weight: bold;
             color: white;
-        }
+        }}
 
-        QToolBar QToolButton:hover {
+        QToolBar QToolButton:hover {{
             background-color: #4a4e69;
             border-color: #6c757d;
-        }
+        }}
         
-        QPushButton {
+        QPushButton {{
             background-color: #4a4e69;
             color: white;
             border: none;
             padding: 8px 16px;
             border-radius: 8px;
             font-weight: bold;
-        }
+        }}
         
-        QPushButton:hover {
+        QPushButton:hover {{
             background-color: #6c757d;
-        }
+        }}
         
-        QPushButton:pressed {
+        QPushButton:pressed {{
             background-color: #545b62;
-        }
+        }}
         
-        QPushButton:disabled {
+        QPushButton:disabled {{
             background-color: #3d3d3d;
             color: #6c6c6c;
-        }
+        }}
         
-        QPushButton#dangerButton {
+        QPushButton#dangerButton {{
             background-color: #dc3545;
-        }
+        }}
         
-        QPushButton#dangerButton:hover {
+        QPushButton#dangerButton:hover {{
             background-color: #c82333;
-        }
+        }}
         
-        QPushButton#successButton {
+        QPushButton#successButton {{
             background-color: #28a745;
-        }
+        }}
         
-        QPushButton#successButton:hover {
+        QPushButton#successButton:hover {{
             background-color: #218838;
-        }
+        }}
         
-        QPushButton#warningButton {
+        QPushButton#warningButton {{
             background-color: #ffc107;
             color: #212529;
-        }
+        }}
         
-        QComboBox {
+        QComboBox {{
             background-color: #2d2d44;
             border: 1px solid #4a4e69;
             border-radius: 8px;
             padding: 6px 12px;
             min-width: 150px;
-        }
+        }}
         
-        QComboBox:hover {
+        QComboBox:hover {{
             border-color: #6c757d;
-        }
+        }}
         
-        QComboBox::drop-down {
+        QComboBox::drop-down {{
             border: none;
             padding-right: 10px;
-        }
+        }}
         
-        QComboBox QAbstractItemView {
+        QComboBox QAbstractItemView {{
             background-color: #2d2d44;
             border: 1px solid #4a4e69;
             selection-background-color: #4a4e69;
-        }
+        }}
         
-        QLineEdit {
+        QLineEdit {{
             background-color: #2d2d44;
             border: 1px solid #4a4e69;
             border-radius: 8px;
             padding: 8px 12px;
-        }
+        }}
         
-        QLineEdit:focus {
+        QLineEdit:focus {{
             border-color: #667eea;
-        }
+        }}
         
-        QListWidget {
+        QListWidget {{
             background-color: #1a1a2e;
             border: 1px solid #2d2d44;
             border-radius: 8px;
             padding: 4px;
-        }
+        }}
         
-        QListWidget::item {
+        QListWidget::item {{
             padding: 8px 12px;
             border-radius: 6px;
             margin: 2px 0;
-        }
+        }}
         
-        QListWidget::item:selected {
+        QListWidget::item:selected {{
             background-color: #4a4e69;
-        }
+        }}
         
-        QListWidget::item:hover {
+        QListWidget::item:hover {{
             background-color: #2d2d44;
-        }
+        }}
         
-        QTextEdit {
+        QTextEdit {{
             background-color: #0f0f23;
             border: 1px solid #2d2d44;
             border-radius: 8px;
             padding: 8px;
             font-family: 'Consolas', 'Courier New', monospace;
-        }
+        }}
         
-        QGroupBox {
+        QGroupBox {{
             border: 1px solid #2d2d44;
             border-radius: 8px;
             margin-top: 12px;
             padding-top: 12px;
             font-weight: bold;
-        }
+        }}
         
-        QGroupBox::title {
+        QGroupBox::title {{
             subcontrol-origin: margin;
             left: 12px;
             padding: 0 8px;
-        }
+        }}
         
-        QSplitter::handle {
+        QSplitter::handle {{
             background-color: #2d2d44;
-        }
+        }}
         
-        QSplitter::handle:horizontal {
+        QSplitter::handle:horizontal {{
             width: 2px;
-        }
+        }}
         
-        QSplitter::handle:vertical {
+        QSplitter::handle:vertical {{
             height: 2px;
-        }
+        }}
         
-        QStatusBar {
+        QStatusBar {{
             background-color: #0f0f23;
             color: #a0a0a0;
-        }
+        }}
         
-        QScrollBar:vertical {
+        QScrollBar:vertical {{
             background-color: #1a1a2e;
             width: 12px;
             border-radius: 6px;
-        }
+        }}
         
-        QScrollBar::handle:vertical {
+        QScrollBar::handle:vertical {{
             background-color: #4a4e69;
             border-radius: 6px;
             min-height: 30px;
-        }
+        }}
         
-        QScrollBar::handle:vertical:hover {
+        QScrollBar::handle:vertical:hover {{
             background-color: #6c757d;
-        }
+        }}
         
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
             height: 0;
-        }
+        }}
         
-        QCheckBox {
+        QCheckBox {{
             spacing: 8px;
-        }
+        }}
         
-        QCheckBox::indicator {
+        QCheckBox::indicator {{
             width: 18px;
             height: 18px;
             border-radius: 6px;
             border: 2px solid #4a4e69;
-        }
+        }}
         
         /* Tab Widget Styling */
-        QTabWidget::pane {
+        QTabWidget::pane {{
             border: 1px solid #2d2d44;
             border-radius: 8px;
             background-color: #1a1a2e;
-        }
+        }}
         
-        QTabWidget::tab-bar {
+        QTabWidget::tab-bar {{
             left: 5px;
-        }
+        }}
         
-        QTabBar::tab {
+        QTabBar::tab {{
             background-color: #0f0f23;
             color: #888888;
             border-top-left-radius: 8px;
@@ -489,24 +511,24 @@ class MainWindow(QMainWindow):
             padding: 8px 16px;
             margin-right: 4px;
             font-weight: bold;
-        }
+        }}
         
-        QTabBar::tab:selected {
+        QTabBar::tab:selected {{
             background-color: #2d2d44; /* Active tab matches content bg */
             color: #ffffff;
             border-bottom: 2px solid #667eea;
-        }
+        }}
         
-        QTabBar::tab:hover {
+        QTabBar::tab:hover {{
             background-color: #2d2d44;
             color: #e8e8e8;
-        }
+        }}
         
-        QCheckBox::indicator:checked {
+        QCheckBox::indicator:checked {{
             background-color: transparent;
             border: 2px solid #667eea;
-            image: url(adbui/assets/check.svg);
-        }
+            image: url({check_icon_path});
+        }}
         """
         
         self.setStyleSheet(style)
@@ -954,6 +976,12 @@ class MainWindow(QMainWindow):
         """Yenileme tamamlandı."""
         self.ai_panel.set_analysis(analysis)
     
+    @Slot()
+    def _show_help(self):
+        """Yardım diyaoğunu göster."""
+        dialog = HelpDialog(self)
+        dialog.exec()
+
     def closeEvent(self, event):
         """Pencere kapatılıyor."""
         logger.info("Uygulama kapatılıyor")

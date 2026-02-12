@@ -85,7 +85,7 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='ADBUI_Portable',
+    name='ADBUI_Portable_v2',
 )
 
 # KURULUM / STANDALONE (TEK EXE) VERSİYON - Şimdilik devre dışı (Hız ve test amaçlı)
@@ -120,7 +120,7 @@ coll = COLLECT(
     subprocess.check_call([sys.executable, "-m", "PyInstaller", "--noconfirm", "adbui.spec"])
 
     print("\n✅ Derleme Tamamlandı!")
-    print(f"📂 Portable Klasör: {Path('dist/ADBUI_Portable').absolute()}")
+    print(f"📂 Portable Klasör: {Path('dist/ADBUI_Portable_v2').absolute()}")
     # print(f"📄 Tek EXE (Kurulum): {Path('dist/ADBUI_Setup.exe').absolute()}")
 
 if __name__ == "__main__":

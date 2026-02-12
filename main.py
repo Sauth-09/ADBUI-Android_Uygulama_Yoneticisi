@@ -61,11 +61,25 @@ def main():
     app.setApplicationVersion("1.0.0")
     app.setOrganizationName("ADBUI")
     
+    from PySide6.QtWidgets import QSplashScreen
+    from PySide6.QtGui import QPixmap
+
     # İkonu ayarla
     icon_path = PROJECT_ROOT / "logo.ico"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
     
+    # Splash Screen (Açılış Ekranı)
+    splash = None
+    if icon_path.exists():
+        pixmap = QPixmap(str(icon_path))
+        # Logoyu biraz büyüt
+        pixmap = pixmap.scaled(128, 128, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        splash = QSplashScreen(pixmap, Qt.WindowStaysOnTopHint)
+        splash.showMessage("Yükleniyor...", Qt.AlignBottom | Qt.AlignCenter, Qt.white)
+        splash.show()
+        app.processEvents()
+
     # Font ayarla
     font = QFont("Segoe UI", 10)
     app.setFont(font)
@@ -77,6 +91,9 @@ def main():
         config.get('window_height', 900)
     )
     window.show()
+    
+    if splash:
+        splash.finish(window)
     
     # Uygulama döngüsü
     sys.exit(app.exec())
